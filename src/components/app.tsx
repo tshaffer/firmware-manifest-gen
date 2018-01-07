@@ -3,6 +3,8 @@ import * as React from 'react';
 // import { cd } from 'shelljs';
 import * as shell from 'shelljs';
 
+import { RecentCommitData } from '../interfaces';
+
 export default class App extends React.Component<any, object> {
 
   componentDidMount() {
@@ -66,9 +68,19 @@ export default class App extends React.Component<any, object> {
       console.log('currentBranch: ', currentBranch);
 
       // git log -$numCommits
-      const recentCommitMessages: string = shell.exec('git log -3').stdout;
+      const numRecentCommits = 3;
+      const recentCommits: RecentCommitData[] = [];
+      for (let i = 0; i < (numRecentCommits - 1); i++) {
+        const commitMessage = shell.exec('git log -1 --skip=' + i.toString()).stdout;
+        const commitHash = commitMessage.substr(7, 40);
+        recentCommits.push( {
+          commitHash,
+          commitMessage
+        });
+      }
+
       console.log('Recent commit messages:');
-      console.log(recentCommitMessages);
+      console.log(recentCommits);
       console.log('');
     });
   }
