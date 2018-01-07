@@ -12,13 +12,16 @@
   "license": "ISC",
   "dependencies": {
     "core-js": "^2.4.1",
+    "material-ui": "^0.20.0",
     "react": "^15.5.4",
     "react-dom": "^15.5.4",
+    "react-tap-event-plugin": "^2.0.1",
     "shelljs": "^0.7.8",
     "tsutils": "^2.1.0"
   },
   "devDependencies": {
     "@types/electron": "^1.4.37",
+    "@types/material-ui": "^0.20.1",
     "@types/react": "^15.0.24",
     "@types/react-dom": "^15.5.0",
     "@types/shelljs": "^0.7.7",

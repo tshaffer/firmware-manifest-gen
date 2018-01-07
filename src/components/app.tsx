@@ -1,6 +1,8 @@
 import * as React from 'react';
 
-// import { cd } from 'shelljs';
+import MuiThemeProvider from 'material-ui/styles/MuiThemeProvider';
+import RaisedButton from 'material-ui/RaisedButton';
+
 import * as shell from 'shelljs';
 
 import { RecentCommitData } from '../interfaces';
@@ -85,9 +87,18 @@ export default class App extends React.Component<any, object> {
     });
   }
 
+  buttonClicked() {
+    console.log('buttonClicked');
+  }
+
   render() {
     return (
-      <div>Pizza</div>
+      <MuiThemeProvider>
+        <div>
+          <div>Pizza</div>
+          <RaisedButton label='Delete' onClick={this.buttonClicked.bind(this)}/>
+        </div>
+      </MuiThemeProvider>
     );
   }
 }
