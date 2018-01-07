@@ -36,13 +36,6 @@ export default class App extends React.Component<any, object> {
         }
       });
 
-      if (tags.length === 0) {
-        console.log(packageName, ' has no tags.');
-      }
-      else {
-        console.log('Tags for ', packageName, ': ', tags);
-      }
-
       tags.forEach((tag) => {
 
         // get the commit information for the tag
@@ -60,6 +53,23 @@ export default class App extends React.Component<any, object> {
         console.log('');
       });
 
+      // get the last n commits on the current branch for this package
+      // currentBranch=$(git branch | grep \* | cut -d ' ' -f2)
+      let currentBranch: string = '';
+      const rawBranches: string = shell.exec('git branch').stdout;
+      const branches: string[] = rawBranches.split('\n');
+      branches.forEach((branchName) => {
+        if (branchName.startsWith('* ')) {
+          currentBranch = branchName.substring(2);
+        }
+      })
+      console.log('currentBranch: ', currentBranch);
+
+      // git log -$numCommits
+      const recentCommitMessages: string = shell.exec('git log -3').stdout;
+      console.log('Recent commit messages:');
+      console.log(recentCommitMessages);
+      console.log('');
     });
   }
 
