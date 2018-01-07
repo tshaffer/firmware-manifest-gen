@@ -23,8 +23,9 @@ export default class App extends React.Component<any, object> {
       shell.cd(packagePath);
       shell.pwd();
 
+      // Get tags for this package
+      // tags=$(git tag)
       const rawTags: any = shell.exec('git tag');
-      console.log('Tags for ', packageName);
 
       const splitTags: string[] = rawTags.split('\n');
 
@@ -41,6 +42,24 @@ export default class App extends React.Component<any, object> {
       else {
         console.log('Tags for ', packageName, ': ', tags);
       }
+
+      tags.forEach((tag) => {
+
+        // get the commit information for the tag
+        // commitLine=$(git show $tag | grep commit)
+        const gitShowCmd: string = 'git show ' + tag + ' | grep commit'
+        const commitLine: string = shell.exec(gitShowCmd).stdout;
+        const commitHash: string = commitLine.split(' ')[1];
+
+        // commitInfo=$(git log -1 $commitHash)
+        const gitLogCmd: string = 'git log -1 ' + commitHash;
+        const commitInfo: string = shell.exec(gitLogCmd).stdout;
+
+        console.log('Tag:', tag);
+        console.log(commitInfo);
+        console.log('');
+      });
+
     });
   }
 
