@@ -24,8 +24,3 @@ ReactDOM.render(
     </Provider>,
     document.getElementById('content') as HTMLElement,
 );
-
-ReactDOM.render(
-  <App />,
-  document.getElementById('content') as HTMLElement,
-);

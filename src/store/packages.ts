@@ -8,7 +8,7 @@ export const ADD_PACKAGE = 'ADD_PACKAGE';
 // ------------------------------------
 // Actions
 // ------------------------------------
-function addPackage(bsPackage: BsPackage) {
+export function addPackage(bsPackage: BsPackage) {
   return {
     type: ADD_PACKAGE,
     payload: bsPackage

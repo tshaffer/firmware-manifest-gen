@@ -1,10 +1,15 @@
 import * as React from 'react';
 
+import { connect } from 'react-redux';
+import { bindActionCreators, Dispatch } from 'redux';
+
 import MuiThemeProvider from 'material-ui/styles/MuiThemeProvider';
 import RaisedButton from 'material-ui/RaisedButton';
 import {Table, TableBody, TableHeader, TableHeaderColumn, TableRow, TableRowColumn} from 'material-ui/Table';
 import SelectField from 'material-ui/SelectField';
 import MenuItem from 'material-ui/MenuItem';
+
+import { addPackage } from '../store/packages';
 
 import * as shell from 'shelljs';
 
@@ -15,7 +20,7 @@ import {
   RecentCommitData
 } from '../interfaces';
 
-export default class App extends React.Component<any, object> {
+class App extends React.Component<any, object> {
 
   state: any;
   
@@ -98,6 +103,8 @@ export default class App extends React.Component<any, object> {
 
       (bsPackage as BsPackage).tags = bsTags;
       bsPackages.push(bsPackage as BsPackage);
+
+      this.props.addPackage(bsPackage as BsPackage);
 
       // get the last n commits on the current branch for this package
       // currentBranch=$(git branch | grep \* | cut -d ' ' -f2)
@@ -212,14 +219,26 @@ export default class App extends React.Component<any, object> {
 
     const bsPackageRows: any = [];
 
-    this.state.bsPackages.forEach((bsPackage: BsPackage) => {
-      bsPackageRows.push(this.buildPackageRow(bsPackage));
-    })
+    const bsPackagesByPackageName: any = this.props.bsPackages.bsPackagesByPackageName;
+    for (const packageName in bsPackagesByPackageName) {
+      if (bsPackagesByPackageName.hasOwnProperty(packageName)) {
+        const bsPackage: BsPackage = bsPackagesByPackageName[packageName];
+        bsPackageRows.push(this.buildPackageRow(bsPackage));
+      }
+    }
+
+    // this.state.bsPackages.forEach((bsPackage: BsPackage) => {
+    //   bsPackageRows.push(this.buildPackageRow(bsPackage));
+    // })
 
     return bsPackageRows;
   }
 
   render() {
+
+    if (Object.keys(this.props.bsPackages.bsPackagesByPackageName).length) {
+      debugger;
+    }
 
     const bsPackageRows: any[] = this.buildPackageRows();
 
@@ -254,3 +273,17 @@ export default class App extends React.Component<any, object> {
     );
   }
 }
+
+function mapStateToProps(state : any) {
+  return {
+    bsPackages: state.bsPackages,
+  };
+}
+
+const mapDispatchToProps = (dispatch: Dispatch<any>) => {
+  return bindActionCreators({
+    addPackage,
+  }, dispatch);
+};
+
+export default connect(mapStateToProps, mapDispatchToProps)(App);
