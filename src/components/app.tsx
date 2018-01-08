@@ -10,6 +10,7 @@ import * as shell from 'shelljs';
 
 import {
   BsPackage,
+  BsTag,
   BstPackage,
   RecentCommitData
 } from '../interfaces';
@@ -23,10 +24,10 @@ export default class App extends React.Component<any, object> {
     this.state = {
       bsPackages: [],
       value: '',
-      isEditing: false,
-      isInitialized: false,
+      selectedTagInfo: 'Pizza is good',
     };
-    this.handleChange = this.handleChange.bind(this);
+    this.selectTag = this.selectTag.bind(this);
+    this.configureButtonClicked = this.configureButtonClicked.bind(this);
   }
 
   // 1 row per package
@@ -49,7 +50,6 @@ export default class App extends React.Component<any, object> {
 
       const bsPackage: BstPackage = {};
       (bsPackage as BsPackage).name = packageName;
-      bsPackages.push(bsPackage as BsPackage);
 
       const packagePath = packageBaseDir.concat(packageName);
 
@@ -72,6 +72,8 @@ export default class App extends React.Component<any, object> {
         }
       });
 
+      const bsTags: BsTag[] = [];
+
       tags.forEach((tag) => {
 
         // get the commit information for the tag
@@ -84,10 +86,18 @@ export default class App extends React.Component<any, object> {
         const gitLogCmd: string = 'git log -1 ' + commitHash;
         const commitInfo: string = shell.exec(gitLogCmd).stdout;
 
-        console.log('Tag:', tag);
+        console.log('BsTag:', tag);
         console.log(commitInfo);
         console.log('');
+
+        bsTags.push( {
+          name: tag,
+          commit: commitInfo
+        });
       });
+
+      (bsPackage as BsPackage).tags = bsTags;
+      bsPackages.push(bsPackage as BsPackage);
 
       // get the last n commits on the current branch for this package
       // currentBranch=$(git branch | grep \* | cut -d ' ' -f2)
@@ -98,7 +108,7 @@ export default class App extends React.Component<any, object> {
         if (branchName.startsWith('* ')) {
           currentBranch = branchName.substring(2);
         }
-      })
+      });
       console.log('currentBranch: ', currentBranch);
 
       // git log -$numCommits
@@ -121,18 +131,61 @@ export default class App extends React.Component<any, object> {
     this.setState({ bsPackages });
   }
 
-  buttonClicked() {
-    console.log('buttonClicked');
+  selectTag(event: any, index: number, value: any) {
+    console.log('selectTag');
+    console.log(event);
+    console.log(index);
+    console.log(value);
+
+    const selectedBsPackageIndex = index;
+    const selectedBsPackage: BsPackage = this.state.bsPackages[value.bsPackageIndex];
+
+    const self: any = this;
+
+    selectedBsPackage.tags.forEach((tag, tagIndex) => {
+      if (tag.name === value.tag.name) {
+        const commitInfo: string = selectedBsPackage.tags[tagIndex].commit;
+        self.setState({selectedTagInfo: commitInfo});
+      }
+    });
+    this.setState({value});
   }
 
-  handleChange(event: any, index: any, value: any) {
-    console.log('handleChange');
-    this.setState({value});
+  configureButtonClicked() {
+    console.log('configureButtonClicked');
+  }
+
+  buildTagOption(tag: BsTag, bsPackageIndex: number) {
+
+    const tagOptionValue: any = {
+      bsPackageIndex,
+      tag
+    };
+
+    return (
+      <MenuItem key={tag.name} value={tagOptionValue} primaryText={tag.name}/>
+    );
+  }
+
+  buildTagOptions(bsPackage: BsPackage) {
+
+    const tagOptions: any[] = [];
+
+    bsPackage.tags.forEach((tag, index) => {
+      const tagOption: any = this.buildTagOption(tag, index);
+      tagOptions.push(tagOption);
+    });
+
+    return tagOptions;
   }
 
   buildPackageRow(bsPackage: BsPackage) {
 
     console.log('buildPackageRow: ', bsPackage);
+
+    const tagOptions: any = this.buildTagOptions(bsPackage);
+
+    const self: any = this;
 
     return (
       <TableRow key={bsPackage.name}>
@@ -141,16 +194,15 @@ export default class App extends React.Component<any, object> {
         </TableRowColumn>
         <TableRowColumn>
           <SelectField
-            floatingLabelText='Frequency'
+            floatingLabelText='Tag'
             value={this.state.value}
-            onChange={this.handleChange}
+            onChange={self.selectTag}
           >
-            <MenuItem value={1} primaryText='Never' />
-            <MenuItem value={2} primaryText='Every Night' />
-            <MenuItem value={3} primaryText='Weeknights' />
-            <MenuItem value={4} primaryText='Weekends' />
-            <MenuItem value={5} primaryText='Weekly' />
+            {tagOptions}
           </SelectField>
+        </TableRowColumn>
+        <TableRowColumn>
+          {this.state.selectedTagInfo}
         </TableRowColumn>
       </TableRow>
     );
@@ -184,8 +236,9 @@ export default class App extends React.Component<any, object> {
               enableSelectAll={false}
             >
               <TableRow>
-                <TableHeaderColumn>Name</TableHeaderColumn>
+                <TableHeaderColumn>Package name</TableHeaderColumn>
                 <TableHeaderColumn>Tags</TableHeaderColumn>
+                <TableHeaderColumn>Tag Commit</TableHeaderColumn>
               </TableRow>
             </TableHeader>
             <TableBody
@@ -195,7 +248,7 @@ export default class App extends React.Component<any, object> {
             </TableBody>
           </Table>
 
-          <RaisedButton label='Delete' onClick={this.buttonClicked.bind(this)}/>
+          <RaisedButton label='Configure' onClick={this.configureButtonClicked}/>
         </div>
       </MuiThemeProvider>
     );
