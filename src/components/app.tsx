@@ -2,14 +2,42 @@ import * as React from 'react';
 
 import MuiThemeProvider from 'material-ui/styles/MuiThemeProvider';
 import RaisedButton from 'material-ui/RaisedButton';
+import {Table, TableBody, TableHeader, TableHeaderColumn, TableRow, TableRowColumn} from 'material-ui/Table';
+import SelectField from 'material-ui/SelectField';
+import MenuItem from 'material-ui/MenuItem';
 
 import * as shell from 'shelljs';
 
-import { RecentCommitData } from '../interfaces';
+import {
+  BsPackage,
+  BstPackage,
+  RecentCommitData
+} from '../interfaces';
 
 export default class App extends React.Component<any, object> {
 
+  state: any;
+  
+  constructor(props: any){
+    super(props);
+    this.state = {
+      bsPackages: [],
+      value: '',
+      isEditing: false,
+      isInitialized: false,
+    };
+    this.handleChange = this.handleChange.bind(this);
+  }
+
+  // 1 row per package
+  // columns
+  //    package name
+  //    tag select - displays tag label
+  //    tag commit info - displays commit info for selected tag
+
   componentDidMount() {
+
+    const bsPackages: BsPackage[] = [];
 
     const packageBaseDir: string = '/Users/tedshaffer/Documents/Projects/';
 
@@ -18,6 +46,10 @@ export default class App extends React.Component<any, object> {
     packageNames.push('bsPublisher');
 
     packageNames.forEach((packageName) => {
+
+      const bsPackage: BstPackage = {};
+      (bsPackage as BsPackage).name = packageName;
+      bsPackages.push(bsPackage as BsPackage);
 
       const packagePath = packageBaseDir.concat(packageName);
 
@@ -85,17 +117,84 @@ export default class App extends React.Component<any, object> {
       console.log(recentCommits);
       console.log('');
     });
+
+    this.setState({ bsPackages });
   }
 
   buttonClicked() {
     console.log('buttonClicked');
   }
 
+  handleChange(event: any, index: any, value: any) {
+    console.log('handleChange');
+    this.setState({value});
+  }
+
+  buildPackageRow(bsPackage: BsPackage) {
+
+    console.log('buildPackageRow: ', bsPackage);
+
+    return (
+      <TableRow key={bsPackage.name}>
+        <TableRowColumn>
+          {bsPackage.name}
+        </TableRowColumn>
+        <TableRowColumn>
+          <SelectField
+            floatingLabelText='Frequency'
+            value={this.state.value}
+            onChange={this.handleChange}
+          >
+            <MenuItem value={1} primaryText='Never' />
+            <MenuItem value={2} primaryText='Every Night' />
+            <MenuItem value={3} primaryText='Weeknights' />
+            <MenuItem value={4} primaryText='Weekends' />
+            <MenuItem value={5} primaryText='Weekly' />
+          </SelectField>
+        </TableRowColumn>
+      </TableRow>
+    );
+  }
+
+  buildPackageRows() {
+
+    const bsPackageRows: any = [];
+
+    this.state.bsPackages.forEach((bsPackage: BsPackage) => {
+      bsPackageRows.push(this.buildPackageRow(bsPackage));
+    })
+
+    return bsPackageRows;
+  }
+
   render() {
+
+    const bsPackageRows: any[] = this.buildPackageRows();
+
     return (
       <MuiThemeProvider>
         <div>
+
           <div>Pizza</div>
+
+          <Table>
+            <TableHeader
+              displaySelectAll={false}
+              adjustForCheckbox={false}
+              enableSelectAll={false}
+            >
+              <TableRow>
+                <TableHeaderColumn>Name</TableHeaderColumn>
+                <TableHeaderColumn>Tags</TableHeaderColumn>
+              </TableRow>
+            </TableHeader>
+            <TableBody
+              displayRowCheckbox={false}
+            >
+              {bsPackageRows}
+            </TableBody>
+          </Table>
+
           <RaisedButton label='Delete' onClick={this.buttonClicked.bind(this)}/>
         </div>
       </MuiThemeProvider>
