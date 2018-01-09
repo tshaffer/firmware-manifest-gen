@@ -9,6 +9,7 @@ export interface BsTag {
 }
 export interface BsPackage {
   name: string;
+  selectedTagIndex: number;
   tags: BsTag[];
 }
 

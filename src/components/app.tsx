@@ -9,7 +9,10 @@ import {Table, TableBody, TableHeader, TableHeaderColumn, TableRow, TableRowColu
 import SelectField from 'material-ui/SelectField';
 import MenuItem from 'material-ui/MenuItem';
 
-import { addPackage } from '../store/packages';
+import {
+  addPackage,
+  setSelectedTagIndex,
+} from '../store/packages';
 
 import * as shell from 'shelljs';
 
@@ -39,7 +42,6 @@ class App extends React.Component<any, object> {
   // columns
   //    package name
   //    tag select - displays tag label
-  //    tag commit info - displays commit info for selected tag
 
   componentDidMount() {
 
@@ -55,6 +57,7 @@ class App extends React.Component<any, object> {
 
       const bsPackage: BstPackage = {};
       (bsPackage as BsPackage).name = packageName;
+      (bsPackage as BsPackage).selectedTagIndex = 0;
 
       const packagePath = packageBaseDir.concat(packageName);
 
@@ -138,39 +141,19 @@ class App extends React.Component<any, object> {
     this.setState({ bsPackages });
   }
 
-  selectTag(event: any, index: number, value: any) {
-    console.log('selectTag');
-    console.log(event);
-    console.log(index);
-    console.log(value);
-
-    const selectedBsPackageIndex = index;
-    const selectedBsPackage: BsPackage = this.state.bsPackages[value.bsPackageIndex];
-
-    const self: any = this;
-
-    selectedBsPackage.tags.forEach((tag, tagIndex) => {
-      if (tag.name === value.tag.name) {
-        const commitInfo: string = selectedBsPackage.tags[tagIndex].commit;
-        self.setState({selectedTagInfo: commitInfo});
-      }
-    });
-    this.setState({value});
+  selectTag(event: any, key: number, payload: any) {
+    const params: string[] = payload.split(':');
+    this.props.setSelectedTagIndex(params[0], Number(params[1]));
   }
 
   configureButtonClicked() {
     console.log('configureButtonClicked');
   }
 
-  buildTagOption(tag: BsTag, bsPackageIndex: number) {
-
-    const tagOptionValue: any = {
-      bsPackageIndex,
-      tag
-    };
+  buildTagOption(tag: BsTag, bsPackageName: string, tagIndex: number) {
 
     return (
-      <MenuItem key={tag.name} value={tagOptionValue} primaryText={tag.name}/>
+      <MenuItem key={tag.name} value={bsPackageName + ':' + tagIndex.toString()} primaryText={tag.name}/>
     );
   }
 
@@ -179,7 +162,7 @@ class App extends React.Component<any, object> {
     const tagOptions: any[] = [];
 
     bsPackage.tags.forEach((tag, index) => {
-      const tagOption: any = this.buildTagOption(tag, index);
+      const tagOption: any = this.buildTagOption(tag, bsPackage.name, index);
       tagOptions.push(tagOption);
     });
 
@@ -194,6 +177,8 @@ class App extends React.Component<any, object> {
 
     const self: any = this;
 
+    const tagValue = bsPackage.name + ':' + bsPackage.selectedTagIndex.toString();
+
     return (
       <TableRow key={bsPackage.name}>
         <TableRowColumn>
@@ -202,14 +187,14 @@ class App extends React.Component<any, object> {
         <TableRowColumn>
           <SelectField
             floatingLabelText='Tag'
-            value={this.state.value}
+            value={tagValue}
             onChange={self.selectTag}
           >
             {tagOptions}
           </SelectField>
         </TableRowColumn>
         <TableRowColumn>
-          {this.state.selectedTagInfo}
+          TBD
         </TableRowColumn>
       </TableRow>
     );
@@ -227,18 +212,10 @@ class App extends React.Component<any, object> {
       }
     }
 
-    // this.state.bsPackages.forEach((bsPackage: BsPackage) => {
-    //   bsPackageRows.push(this.buildPackageRow(bsPackage));
-    // })
-
     return bsPackageRows;
   }
 
   render() {
-
-    if (Object.keys(this.props.bsPackages.bsPackagesByPackageName).length) {
-      debugger;
-    }
 
     const bsPackageRows: any[] = this.buildPackageRows();
 
@@ -283,6 +260,7 @@ function mapStateToProps(state : any) {
 const mapDispatchToProps = (dispatch: Dispatch<any>) => {
   return bindActionCreators({
     addPackage,
+    setSelectedTagIndex,
   }, dispatch);
 };
 
