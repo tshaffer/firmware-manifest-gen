@@ -3,16 +3,20 @@ import * as React from 'react';
 import { connect } from 'react-redux';
 import { bindActionCreators, Dispatch } from 'redux';
 
+import MenuItem from 'material-ui/MenuItem';
 import MuiThemeProvider from 'material-ui/styles/MuiThemeProvider';
 import {RadioButton, RadioButtonGroup} from 'material-ui/RadioButton';
 import RaisedButton from 'material-ui/RaisedButton';
-import {Table, TableBody, TableHeader, TableHeaderColumn, TableRow, TableRowColumn} from 'material-ui/Table';
 import SelectField from 'material-ui/SelectField';
-import MenuItem from 'material-ui/MenuItem';
+import {Table, TableBody, TableHeader, TableHeaderColumn, TableRow, TableRowColumn} from 'material-ui/Table';
+import TextField from 'material-ui/TextField';
 
 import {
   addPackage,
+  setPackageVersionSelector,
+  setSelectedBranchName,
   setSelectedTagIndex,
+  setSpecifiedCommitHash,
 } from '../store/packages';
 
 import * as shell from 'shelljs';
@@ -58,7 +62,10 @@ class App extends React.Component<any, object> {
 
       const bsPackage: BstPackage = {};
       (bsPackage as BsPackage).name = packageName;
+      (bsPackage as BsPackage).packageVersionSelector = 'tag';
       (bsPackage as BsPackage).selectedTagIndex = 0;
+      (bsPackage as BsPackage).selectedBranchName = 'master';
+      (bsPackage as BsPackage).specifiedCommitHash = '';
 
       const packagePath = packageBaseDir.concat(packageName);
 
@@ -142,13 +149,28 @@ class App extends React.Component<any, object> {
     this.setState({ bsPackages });
   }
 
+  setPackageVersionSelector(event: any, value: any) {
+    const params: string[] = value.split(':');
+    this.props.setPackageVersionSelector(params[0], params[1]);
+  }
+
   selectTag(event: any, key: number, payload: any) {
     const params: string[] = payload.split(':');
     this.props.setSelectedTagIndex(params[0], Number(params[1]));
   }
 
-  selectPackageIdType(event: object, value: undefined) {
-    console.log('selectedPackageType: ' + value);
+  setBranchName(event: any, newValue: string) {
+    const params: string[] = event.target.id.split(':');
+    const packageName: string = params[0];
+    const branchName: string = newValue;
+    this.props.setSelectedBranchName(packageName, branchName);
+  }
+
+  setCommitHash(event: any, newValue: string) {
+    const params: string[] = event.target.id.split(':');
+    const packageName: string = params[0];
+    const commitHash: string = newValue;
+    this.props.setSpecifiedCommitHash(packageName, commitHash);
   }
 
   configureButtonClicked() {
@@ -193,7 +215,7 @@ class App extends React.Component<any, object> {
           <RadioButtonGroup
             name='packageIdType'
             defaultSelected={bsPackage.name + ':tag'}
-            onChange={self.selectPackageIdType}
+            onChange={self.setPackageVersionSelector}
           >
             <RadioButton
               value={bsPackage.name + ':tag'}
@@ -219,10 +241,18 @@ class App extends React.Component<any, object> {
           </SelectField>
         </TableRowColumn>
         <TableRowColumn>
-          master
+          <TextField
+            id={bsPackage.name + ':branchName'}
+            defaultValue='master'
+            onChange={self.setBranchName}
+          />
         </TableRowColumn>
         <TableRowColumn>
-          xx69yy
+          <TextField
+            id={bsPackage.name + ':commitHash'}
+            defaultValue=''
+            onChange={self.setCommitHash}
+          />
         </TableRowColumn>
       </TableRow>
     );
@@ -291,7 +321,10 @@ function mapStateToProps(state : any) {
 const mapDispatchToProps = (dispatch: Dispatch<any>) => {
   return bindActionCreators({
     addPackage,
+    setPackageVersionSelector,
+    setSelectedBranchName,
     setSelectedTagIndex,
+    setSpecifiedCommitHash,
   }, dispatch);
 };
 

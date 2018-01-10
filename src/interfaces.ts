@@ -9,8 +9,11 @@ export interface BsTag {
 }
 export interface BsPackage {
   name: string;
-  selectedTagIndex: number;
   tags: BsTag[];
+  packageVersionSelector: string;
+  selectedTagIndex: number;
+  selectedBranchName: string;
+  specifiedCommitHash: string;
 }
 
 export type BstPackage = BsPackage | {};
