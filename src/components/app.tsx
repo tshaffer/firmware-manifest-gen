@@ -11,6 +11,8 @@ import SelectField from 'material-ui/SelectField';
 import {Table, TableBody, TableHeader, TableHeaderColumn, TableRow, TableRowColumn} from 'material-ui/Table';
 import TextField from 'material-ui/TextField';
 
+import * as shell from 'shelljs';
+
 import {
   addPackage,
   setPackageVersionSelector,
@@ -18,8 +20,6 @@ import {
   setSelectedTagIndex,
   setSpecifiedCommitHash,
 } from '../store/packages';
-
-import * as shell from 'shelljs';
 
 import {
   BsPackage,
@@ -34,12 +34,10 @@ class App extends React.Component<any, object> {
   
   constructor(props: any){
     super(props);
-    this.state = {
-      bsPackages: [],
-      value: '',
-      selectedTagInfo: 'Pizza is good',
-    };
+    this.setPackageVersionSelector = this.setPackageVersionSelector.bind(this);
     this.selectTag = this.selectTag.bind(this);
+    this.setBranchName = this.setBranchName.bind(this);
+    this.setCommitHash = this.setCommitHash.bind(this);
     this.configureButtonClicked = this.configureButtonClicked.bind(this);
   }
 
@@ -145,8 +143,6 @@ class App extends React.Component<any, object> {
       console.log(recentCommits);
       console.log('');
     });
-
-    this.setState({ bsPackages });
   }
 
   setPackageVersionSelector(event: any, value: any) {
@@ -174,7 +170,16 @@ class App extends React.Component<any, object> {
   }
 
   configureButtonClicked() {
+
     console.log('configureButtonClicked');
+
+    const bsPackagesByPackageName: any = this.props.bsPackages.bsPackagesByPackageName;
+    for (const packageName in bsPackagesByPackageName) {
+      if (bsPackagesByPackageName.hasOwnProperty(packageName)) {
+        const bsPackage: BsPackage = bsPackagesByPackageName[packageName];
+        console.log(bsPackage);
+      }
+    }
   }
 
   buildTagOption(tag: BsTag, bsPackageName: string, tagIndex: number) {
