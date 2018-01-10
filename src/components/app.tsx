@@ -4,6 +4,7 @@ import { connect } from 'react-redux';
 import { bindActionCreators, Dispatch } from 'redux';
 
 import MuiThemeProvider from 'material-ui/styles/MuiThemeProvider';
+import {RadioButton, RadioButtonGroup} from 'material-ui/RadioButton';
 import RaisedButton from 'material-ui/RaisedButton';
 import {Table, TableBody, TableHeader, TableHeaderColumn, TableRow, TableRowColumn} from 'material-ui/Table';
 import SelectField from 'material-ui/SelectField';
@@ -146,6 +147,10 @@ class App extends React.Component<any, object> {
     this.props.setSelectedTagIndex(params[0], Number(params[1]));
   }
 
+  selectPackageIdType(event: object, value: undefined) {
+    console.log('selectedPackageType: ' + value);
+  }
+
   configureButtonClicked() {
     console.log('configureButtonClicked');
   }
@@ -185,6 +190,26 @@ class App extends React.Component<any, object> {
           {bsPackage.name}
         </TableRowColumn>
         <TableRowColumn>
+          <RadioButtonGroup
+            name='packageIdType'
+            defaultSelected={bsPackage.name + ':tag'}
+            onChange={self.selectPackageIdType}
+          >
+            <RadioButton
+              value={bsPackage.name + ':tag'}
+              label='Tag'
+            />
+            <RadioButton
+              value={bsPackage.name + ':branch'}
+              label='Branch'
+            />
+            <RadioButton
+              value={bsPackage.name + ':commit'}
+              label='Commit'
+            />
+          </RadioButtonGroup>
+        </TableRowColumn>
+        <TableRowColumn>
           <SelectField
             floatingLabelText='Tag'
             value={tagValue}
@@ -194,7 +219,10 @@ class App extends React.Component<any, object> {
           </SelectField>
         </TableRowColumn>
         <TableRowColumn>
-          TBD
+          master
+        </TableRowColumn>
+        <TableRowColumn>
+          xx69yy
         </TableRowColumn>
       </TableRow>
     );
@@ -215,6 +243,7 @@ class App extends React.Component<any, object> {
     return bsPackageRows;
   }
 
+// <TableHeaderColumn>Tag Commit</TableHeaderColumn>
   render() {
 
     const bsPackageRows: any[] = this.buildPackageRows();
@@ -233,8 +262,10 @@ class App extends React.Component<any, object> {
             >
               <TableRow>
                 <TableHeaderColumn>Package name</TableHeaderColumn>
+                <TableHeaderColumn>Package Version Selector</TableHeaderColumn>
                 <TableHeaderColumn>Tags</TableHeaderColumn>
-                <TableHeaderColumn>Tag Commit</TableHeaderColumn>
+                <TableHeaderColumn>Branch</TableHeaderColumn>
+                <TableHeaderColumn>Commit Hash</TableHeaderColumn>
               </TableRow>
             </TableHeader>
             <TableBody
