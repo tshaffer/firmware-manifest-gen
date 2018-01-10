@@ -171,13 +171,40 @@ class App extends React.Component<any, object> {
 
   configureButtonClicked() {
 
-    console.log('configureButtonClicked');
+    const packageBaseDir: string = '/Users/tedshaffer/Documents/Projects/';
 
     const bsPackagesByPackageName: any = this.props.bsPackages.bsPackagesByPackageName;
     for (const packageName in bsPackagesByPackageName) {
       if (bsPackagesByPackageName.hasOwnProperty(packageName)) {
         const bsPackage: BsPackage = bsPackagesByPackageName[packageName];
         console.log(bsPackage);
+
+        const packagePath = packageBaseDir.concat(bsPackage.name);
+
+        shell.cd(packagePath);
+        shell.pwd();
+
+        const gitFetchOutput: string = shell.exec('git fetch').stdout;
+        console.log('gitFetchOutput: ', gitFetchOutput);
+
+        switch (bsPackage.packageVersionSelector) {
+          case 'tag': {
+            const bsTag: BsTag = bsPackage.tags[bsPackage.selectedTagIndex];
+            const commitHash = bsTag.commit.substr(7, 40);
+            console.log('commit: ', commitHash);
+            break;
+          }
+          case 'branch': {
+            const branchName: string = bsPackage.selectedBranchName;
+            console.log('branchName: ', branchName);
+            break;
+          }
+          case 'commit': {
+            const commitHash: string = bsPackage.specifiedCommitHash;
+            console.log('commit: ', commitHash);
+            break;
+          }
+        }
       }
     }
   }
