@@ -31,7 +31,9 @@ import {
 class App extends React.Component<any, object> {
 
   state: any;
-  
+  // const packageBaseDir: string = '/Users/tedshaffer/Documents/Projects/';
+  packageBaseDir: string = '/Users/tedshaffer/Documents/Projects/bacon-comp/';
+
   constructor(props: any){
     super(props);
     this.setPackageVersionSelector = this.setPackageVersionSelector.bind(this);
@@ -41,16 +43,9 @@ class App extends React.Component<any, object> {
     this.configureButtonClicked = this.configureButtonClicked.bind(this);
   }
 
-  // 1 row per package
-  // columns
-  //    package name
-  //    tag select - displays tag label
-
   componentDidMount() {
 
     const bsPackages: BsPackage[] = [];
-
-    const packageBaseDir: string = '/Users/tedshaffer/Documents/Projects/';
 
     const packageNames: string[] = [];
     packageNames.push('bpfImporter');
@@ -65,7 +60,7 @@ class App extends React.Component<any, object> {
       (bsPackage as BsPackage).selectedBranchName = 'master';
       (bsPackage as BsPackage).specifiedCommitHash = '';
 
-      const packagePath = packageBaseDir.concat(packageName);
+      const packagePath = this.packageBaseDir.concat(packageName);
 
       console.log('packageName: ', packageName);
       console.log('packagePath: ', packagePath);
@@ -171,15 +166,15 @@ class App extends React.Component<any, object> {
 
   configureButtonClicked() {
 
-    const packageBaseDir: string = '/Users/tedshaffer/Documents/Projects/';
-
     const bsPackagesByPackageName: any = this.props.bsPackages.bsPackagesByPackageName;
     for (const packageName in bsPackagesByPackageName) {
       if (bsPackagesByPackageName.hasOwnProperty(packageName)) {
         const bsPackage: BsPackage = bsPackagesByPackageName[packageName];
         console.log(bsPackage);
 
-        const packagePath = packageBaseDir.concat(bsPackage.name);
+        const packagePath = this.packageBaseDir.concat(bsPackage.name);
+
+        let checkoutSpecifier: string = '';
 
         shell.cd(packagePath);
         shell.pwd();
@@ -190,21 +185,24 @@ class App extends React.Component<any, object> {
         switch (bsPackage.packageVersionSelector) {
           case 'tag': {
             const bsTag: BsTag = bsPackage.tags[bsPackage.selectedTagIndex];
-            const commitHash = bsTag.commit.substr(7, 40);
-            console.log('commit: ', commitHash);
+            checkoutSpecifier = bsTag.commit.substr(7, 40);
+            console.log('commit: ', checkoutSpecifier);
             break;
           }
           case 'branch': {
-            const branchName: string = bsPackage.selectedBranchName;
-            console.log('branchName: ', branchName);
+            checkoutSpecifier = bsPackage.selectedBranchName;
+            console.log('branchName: ', checkoutSpecifier);
             break;
           }
           case 'commit': {
-            const commitHash: string = bsPackage.specifiedCommitHash;
-            console.log('commit: ', commitHash);
+            checkoutSpecifier = bsPackage.specifiedCommitHash;
+            console.log('commit: ', checkoutSpecifier);
             break;
           }
         }
+
+        const gitCheckoutOutput: string = shell.exec('git checkout ' + checkoutSpecifier).stdout;
+        console.log('gitCheckoutOutput: ', gitFetchOutput);
       }
     }
   }
