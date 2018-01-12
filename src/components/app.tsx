@@ -1,5 +1,9 @@
 import * as React from 'react';
 
+import * as fs from 'fs-extra';
+
+import * as semver from 'semver';
+
 import { connect } from 'react-redux';
 import { bindActionCreators, Dispatch } from 'redux';
 
@@ -24,14 +28,18 @@ import {
 import {
   BsPackage,
   BsTag,
-  BstPackage,
-  RecentCommitData
+  RecentCommitData,
+  SpecifiedBsPackage,
+  SpecifiedBsPackageMap,
+  VersionSpecType,
 } from '../interfaces';
+
+const specifiedPackages: SpecifiedBsPackage[] = [];
+// let specifiedPackagesMap: SpecifiedBsPackageMap = {};
+const specifiedPackagesMap: any = {};
 
 class App extends React.Component<any, object> {
 
-  state: any;
-  // const packageBaseDir: string = '/Users/tedshaffer/Documents/Projects/';
   packageBaseDir: string = '/Users/tedshaffer/Documents/Projects/bacon-comp/';
 
   constructor(props: any){
@@ -45,70 +53,119 @@ class App extends React.Component<any, object> {
 
   componentDidMount() {
 
+    // get info about bacon's package.json
+    const baconPackageJsonPath = this.packageBaseDir.concat('bacon/package.json');
+    const baconPackageJson = fs.readJsonSync(baconPackageJsonPath);
+    console.log(baconPackageJson);
+    console.log(baconPackageJson.dependencies);
+
+    console.log('bacon package.json contains the following BrightSign packages / versions:');
+
+    for (const dependencyName in baconPackageJson.dependencies) {
+      if (baconPackageJson.dependencies.hasOwnProperty(dependencyName)) {
+        if (dependencyName.startsWith('@brightsign/')) {
+          const bsPackageName: string = dependencyName.substr(12);
+          console.log(bsPackageName);
+          const bsPackageVersionSpec: string = baconPackageJson.dependencies[dependencyName];
+          console.log(bsPackageVersionSpec);
+
+          let versionSpecType: string;
+          const versionSpecFirstChar = bsPackageVersionSpec.substr(0, 1);
+          if (isNaN(Number(versionSpecFirstChar))) {
+            switch (versionSpecFirstChar) {
+              case '>': {
+                versionSpecType = VersionSpecType.GreaterThan;
+                break;
+              }
+              case '~': {
+                versionSpecType = VersionSpecType.Tilde;
+                break;
+              }
+              case '^': {
+                versionSpecType = VersionSpecType.Caret;
+                break;
+              }
+            }
+          }
+          else {
+            versionSpecType = VersionSpecType.Equality;
+          }
+
+          const specifiedBsPackage: SpecifiedBsPackage = {
+            name: bsPackageName,
+            version: bsPackageVersionSpec
+          };
+          specifiedPackages.push(specifiedBsPackage);
+          specifiedPackagesMap[bsPackageName] = specifiedBsPackage;
+        }
+      }
+    }
+
     const bsPackages: BsPackage[] = [];
 
     const packageNames: string[] = [];
-    packageNames.push('bpfImporter');
-    packageNames.push('bsPublisher');
+    // packageNames.push('bpfImporter');
+    // packageNames.push('bsPublisher');
+    packageNames.push('baconcore');
+    packageNames.push('bpfimporter');
+    packageNames.push('bspublisher');
+    packageNames.push('bs-content-manager');
 
     packageNames.forEach((packageName) => {
 
-      const bsPackage: BstPackage = {};
-      (bsPackage as BsPackage).name = packageName;
-      (bsPackage as BsPackage).packageVersionSelector = 'tag';
-      (bsPackage as BsPackage).selectedTagIndex = 0;
-      (bsPackage as BsPackage).selectedBranchName = 'master';
-      (bsPackage as BsPackage).specifiedCommitHash = '';
-
       const packagePath = this.packageBaseDir.concat(packageName);
 
-      console.log('packageName: ', packageName);
-      console.log('packagePath: ', packagePath);
+      // console.log('packageName: ', packageName);
+      // console.log('packagePath: ', packagePath);
 
       shell.cd(packagePath);
       shell.pwd();
 
-      // Get tags for this package
-      // tags=$(git tag)
-      const rawTags: any = shell.exec('git tag');
+      const bsTags: BsTag[] = this.getTags();
+      // this.getBranches();
 
-      const splitTags: string[] = rawTags.split('\n');
+      const bsPackage: BsPackage = {
+        name: packageName,
+        packageVersionSelector: 'tag',
+        selectedTagIndex: 0,
+        selectedBranchName: 'master',
+        specifiedCommitHash: '',
+        tags: bsTags
+      };
+      bsPackages.push(bsPackage);
+      this.props.addPackage(bsPackage);
 
-      const tags: string[] = [];
-      splitTags.forEach((tag) => {
-        if (tag !== '') {
-          tags.push(tag);
+      // see if there's a tag in the list of tags that match what's in package.json
+      const specifiedBsPackage = specifiedPackagesMap[packageName];
+      const specifiedBsPackageVersion = specifiedBsPackage.version;
+
+      console.log('bsPackage: ', packageName);
+      bsTags.forEach( (tag: BsTag) => {
+        const tagName = tag.name;
+        const packageVersionForTag = tagName.substr(1);
+
+        if (semver.intersects(specifiedBsPackageVersion, packageVersionForTag)) {
+            console.log('Candidate for package ', packageName);
+            console.log('tag version: ', packageVersionForTag);
+            console.log('package.json version: ', specifiedBsPackageVersion);
         }
+        // debugger;
+        // const major = semver.major(specifiedBsPackageVersion);
+        // const minor = semver.minor(specifiedBsPackageVersion);
+        // const patch = semver.patch(specifiedBsPackageVersion);
+        // const diff = semver.diff(packageVersionForTag, specifiedBsPackageVersion);
+        // use a combination of semver.gte and semver.diff
+        // if gte === true and semver.diff === null || 'patch', version can be used
+        // think about if multiple meet this criteria. choose the one that is equal?
+
+        // if (semver.gte(packageVersionForTag, specifiedBsPackageVersion) &&
+        //   ((diff === null) ||
+        //     (diff === 'patch'))) {
+        //   console.log('Candidate for package ', packageName);
+        //   console.log('tag version: ', packageVersionForTag);
+        //   console.log('package.json version: ', specifiedBsPackageVersion);
+        // }
       });
-
-      const bsTags: BsTag[] = [];
-
-      tags.forEach((tag) => {
-
-        // get the commit information for the tag
-        // commitLine=$(git show $tag | grep commit)
-        const gitShowCmd: string = 'git show ' + tag + ' | grep commit'
-        const commitLine: string = shell.exec(gitShowCmd).stdout;
-        const commitHash: string = commitLine.split(' ')[1];
-
-        // commitInfo=$(git log -1 $commitHash)
-        const gitLogCmd: string = 'git log -1 ' + commitHash;
-        const commitInfo: string = shell.exec(gitLogCmd).stdout;
-
-        console.log('BsTag:', tag);
-        console.log(commitInfo);
-        console.log('');
-
-        bsTags.push( {
-          name: tag,
-          commit: commitInfo
-        });
-      });
-
-      (bsPackage as BsPackage).tags = bsTags;
-      bsPackages.push(bsPackage as BsPackage);
-
-      this.props.addPackage(bsPackage as BsPackage);
 
       // get the last n commits on the current branch for this package
       // currentBranch=$(git branch | grep \* | cut -d ' ' -f2)
@@ -120,7 +177,7 @@ class App extends React.Component<any, object> {
           currentBranch = branchName.substring(2);
         }
       });
-      console.log('currentBranch: ', currentBranch);
+      // console.log('currentBranch: ', currentBranch);
 
       // git log -$numCommits
       const numRecentCommits = 3;
@@ -134,10 +191,60 @@ class App extends React.Component<any, object> {
         });
       }
 
-      console.log('Recent commit messages:');
-      console.log(recentCommits);
-      console.log('');
+      // console.log('Recent commit messages:');
+      // console.log(recentCommits);
+      // console.log('');
     });
+  }
+
+  getTags() {
+
+    const rawTags: any = shell.exec('git tag');
+
+    const splitTags: string[] = rawTags.split('\n');
+
+    const tags: string[] = [];
+    splitTags.forEach((tag) => {
+      if (tag !== '') {
+        tags.push(tag);
+      }
+    });
+
+    const bsTags: BsTag[] = [];
+
+    tags.forEach((tag) => {
+
+      // get the commit information for the tag
+      // commitLine=$(git show $tag | grep commit)
+      const gitShowCmd: string = 'git show ' + tag + ' | grep commit'
+      const commitLine: string = shell.exec(gitShowCmd).stdout;
+      const commitHash: string = commitLine.split(' ')[1];
+
+      // commitInfo=$(git log -1 $commitHash)
+      const gitLogCmd: string = 'git log -1 ' + commitHash;
+      const commitInfo: string = shell.exec(gitLogCmd).stdout;
+
+      // console.log('BsTag:', tag);
+      // console.log(commitInfo);
+      // console.log('');
+
+      bsTags.push( {
+        name: tag,
+        commit: commitInfo
+      });
+    });
+
+    return bsTags;
+  }
+
+  getBranches() {
+
+    // Future implementation
+
+    // local or remote?
+    const rawBranches: any = shell.exec('git branch -a');
+    console.log(rawBranches.stdout);
+
   }
 
   setPackageVersionSelector(event: any, value: any) {
