@@ -31,7 +31,6 @@ import {
   RecentCommitData,
   SpecifiedBsPackage,
   SpecifiedBsPackageMap,
-  VersionSpecType,
 } from '../interfaces';
 
 const specifiedPackages: SpecifiedBsPackage[] = [];
@@ -64,32 +63,11 @@ class App extends React.Component<any, object> {
     for (const dependencyName in baconPackageJson.dependencies) {
       if (baconPackageJson.dependencies.hasOwnProperty(dependencyName)) {
         if (dependencyName.startsWith('@brightsign/')) {
+
           const bsPackageName: string = dependencyName.substr(12);
           console.log(bsPackageName);
           const bsPackageVersionSpec: string = baconPackageJson.dependencies[dependencyName];
           console.log(bsPackageVersionSpec);
-
-          let versionSpecType: string;
-          const versionSpecFirstChar = bsPackageVersionSpec.substr(0, 1);
-          if (isNaN(Number(versionSpecFirstChar))) {
-            switch (versionSpecFirstChar) {
-              case '>': {
-                versionSpecType = VersionSpecType.GreaterThan;
-                break;
-              }
-              case '~': {
-                versionSpecType = VersionSpecType.Tilde;
-                break;
-              }
-              case '^': {
-                versionSpecType = VersionSpecType.Caret;
-                break;
-              }
-            }
-          }
-          else {
-            versionSpecType = VersionSpecType.Equality;
-          }
 
           const specifiedBsPackage: SpecifiedBsPackage = {
             name: bsPackageName,
@@ -104,8 +82,6 @@ class App extends React.Component<any, object> {
     const bsPackages: BsPackage[] = [];
 
     const packageNames: string[] = [];
-    // packageNames.push('bpfImporter');
-    // packageNames.push('bsPublisher');
     packageNames.push('baconcore');
     packageNames.push('bpfimporter');
     packageNames.push('bspublisher');
@@ -149,22 +125,6 @@ class App extends React.Component<any, object> {
             console.log('tag version: ', packageVersionForTag);
             console.log('package.json version: ', specifiedBsPackageVersion);
         }
-        // debugger;
-        // const major = semver.major(specifiedBsPackageVersion);
-        // const minor = semver.minor(specifiedBsPackageVersion);
-        // const patch = semver.patch(specifiedBsPackageVersion);
-        // const diff = semver.diff(packageVersionForTag, specifiedBsPackageVersion);
-        // use a combination of semver.gte and semver.diff
-        // if gte === true and semver.diff === null || 'patch', version can be used
-        // think about if multiple meet this criteria. choose the one that is equal?
-
-        // if (semver.gte(packageVersionForTag, specifiedBsPackageVersion) &&
-        //   ((diff === null) ||
-        //     (diff === 'patch'))) {
-        //   console.log('Candidate for package ', packageName);
-        //   console.log('tag version: ', packageVersionForTag);
-        //   console.log('package.json version: ', specifiedBsPackageVersion);
-        // }
       });
 
       // get the last n commits on the current branch for this package
@@ -418,8 +378,6 @@ class App extends React.Component<any, object> {
     return (
       <MuiThemeProvider>
         <div>
-
-          <div>Pizza</div>
 
           <Table>
             <TableHeader

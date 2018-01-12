@@ -17,14 +17,6 @@ export interface BsPackage {
   specifiedCommitHash: string;
 }
 
-export class VersionSpecType {
-  static Equality = 'equality';
-  static GreaterThan = 'gt';
-  static Tilde = 'tilde';
-  static Caret = 'caret';
-}
-Object.freeze(VersionSpecType);
-
 export interface SpecifiedBsPackage {
   name: string;
   version: string;
