@@ -311,6 +311,15 @@ class App extends React.Component<any, object> {
     return tagOptions;
   }
 
+  getCompatiblePackageDotJsonVersion(bsPackage: BsPackage): string {
+
+    if (!isNil(bsPackage.tagIndexForPackageDotJsonPackageVersion)) {
+      const bsTag = bsPackage.tags[bsPackage.tagIndexForPackageDotJsonPackageVersion];
+      return bsTag.name;
+    }
+    return '';
+  }
+
   buildPackageRow(bsPackage: BsPackage) {
 
     const tagOptions: any = this.buildTagOptions(bsPackage);
@@ -319,10 +328,19 @@ class App extends React.Component<any, object> {
 
     const tagValue = bsPackage.name + ':' + bsPackage.selectedTagIndex.toString();
 
+    let compatiblePackageDotJsonVersion: string = this.getCompatiblePackageDotJsonVersion(bsPackage);
+    const disabled: boolean = compatiblePackageDotJsonVersion === '';
+    if (disabled) {
+      compatiblePackageDotJsonVersion = 'n/a';
+    }
+
     return (
       <TableRow key={bsPackage.name}>
         <TableRowColumn>
           {bsPackage.name}
+        </TableRowColumn>
+        <TableRowColumn>
+          {bsPackage.specifiedBsPackage.version}
         </TableRowColumn>
         <TableRowColumn>
           <RadioButtonGroup
@@ -331,25 +349,26 @@ class App extends React.Component<any, object> {
             onChange={self.setPackageVersionSelector}
           >
             <RadioButton
-              value={bsPackage.name + ':' + PackageVersionSelectorType.Tag}
-              label='Tag'
+              value={bsPackage.name + ':' + PackageVersionSelectorType.PackageDotJsonVersion}
+              label='Package.json version'
+              disabled={disabled}
             />
             <RadioButton
-              value={bsPackage.name + ':' + PackageVersionSelectorType.Branch}
-              label='Branch'
+              value={bsPackage.name + ':' + PackageVersionSelectorType.Tag}
+              label='Tag'
             />
             <RadioButton
               value={bsPackage.name + ':' + PackageVersionSelectorType.Commit}
               label='Commit'
             />
             <RadioButton
-              value={bsPackage.name + ':' + PackageVersionSelectorType.PackageDotJsonVersion}
-              label='Version in package.json'
+              value={bsPackage.name + ':' + PackageVersionSelectorType.Branch}
+              label='Branch'
             />
           </RadioButtonGroup>
         </TableRowColumn>
         <TableRowColumn>
-          {bsPackage.specifiedBsPackage.version}
+          {compatiblePackageDotJsonVersion}
         </TableRowColumn>
         <TableRowColumn>
           <SelectField
@@ -362,16 +381,16 @@ class App extends React.Component<any, object> {
         </TableRowColumn>
         <TableRowColumn>
           <TextField
-            id={bsPackage.name + ':branchName'}
-            defaultValue='master'
-            onChange={self.setBranchName}
+            id={bsPackage.name + ':commitHash'}
+            defaultValue=''
+            onChange={self.setCommitHash}
           />
         </TableRowColumn>
         <TableRowColumn>
           <TextField
-            id={bsPackage.name + ':commitHash'}
-            defaultValue=''
-            onChange={self.setCommitHash}
+            id={bsPackage.name + ':branchName'}
+            defaultValue='master'
+            onChange={self.setBranchName}
           />
         </TableRowColumn>
       </TableRow>
@@ -410,11 +429,12 @@ class App extends React.Component<any, object> {
             >
               <TableRow>
                 <TableHeaderColumn>Package name</TableHeaderColumn>
-                <TableHeaderColumn>Package Version Selector</TableHeaderColumn>
                 <TableHeaderColumn>Version in bacon's package.json</TableHeaderColumn>
+                <TableHeaderColumn>Package Version Selector</TableHeaderColumn>
+                <TableHeaderColumn>>= Bacon Package.json</TableHeaderColumn>
                 <TableHeaderColumn>Tags</TableHeaderColumn>
-                <TableHeaderColumn>Branch</TableHeaderColumn>
                 <TableHeaderColumn>Commit Hash</TableHeaderColumn>
+                <TableHeaderColumn>Branch</TableHeaderColumn>
               </TableRow>
             </TableHeader>
             <TableBody
