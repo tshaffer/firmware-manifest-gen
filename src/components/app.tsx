@@ -1,3 +1,5 @@
+import { isNil } from 'lodash';
+
 import * as React from 'react';
 
 import * as fs from 'fs-extra';
@@ -28,14 +30,11 @@ import {
 import {
   BsPackage,
   BsTag,
+  PackageVersionSelectorType,
   RecentCommitData,
   SpecifiedBsPackage,
-  SpecifiedBsPackageMap,
+  // SpecifiedBsPackageMap,
 } from '../interfaces';
-
-const specifiedPackages: SpecifiedBsPackage[] = [];
-// let specifiedPackagesMap: SpecifiedBsPackageMap = {};
-const specifiedPackagesMap: any = {};
 
 class App extends React.Component<any, object> {
 
@@ -52,28 +51,22 @@ class App extends React.Component<any, object> {
 
   componentDidMount() {
 
-    // get info about bacon's package.json
+    // parse bacon's package.json
+    const specifiedPackagesMap: any = {};
     const baconPackageJsonPath = this.packageBaseDir.concat('bacon/package.json');
     const baconPackageJson = fs.readJsonSync(baconPackageJsonPath);
-    console.log(baconPackageJson);
-    console.log(baconPackageJson.dependencies);
-
-    console.log('bacon package.json contains the following BrightSign packages / versions:');
 
     for (const dependencyName in baconPackageJson.dependencies) {
       if (baconPackageJson.dependencies.hasOwnProperty(dependencyName)) {
         if (dependencyName.startsWith('@brightsign/')) {
 
           const bsPackageName: string = dependencyName.substr(12);
-          console.log(bsPackageName);
           const bsPackageVersionSpec: string = baconPackageJson.dependencies[dependencyName];
-          console.log(bsPackageVersionSpec);
 
           const specifiedBsPackage: SpecifiedBsPackage = {
             name: bsPackageName,
             version: bsPackageVersionSpec
           };
-          specifiedPackages.push(specifiedBsPackage);
           specifiedPackagesMap[bsPackageName] = specifiedBsPackage;
         }
       }
@@ -85,14 +78,13 @@ class App extends React.Component<any, object> {
     packageNames.push('baconcore');
     packageNames.push('bpfimporter');
     packageNames.push('bspublisher');
-    packageNames.push('bs-content-manager');
+    // packageNames.push('bs-content-manager');
 
     packageNames.forEach((packageName) => {
 
-      const packagePath = this.packageBaseDir.concat(packageName);
+      console.log('processing ', packageName);
 
-      // console.log('packageName: ', packageName);
-      // console.log('packagePath: ', packagePath);
+      const packagePath = this.packageBaseDir.concat(packageName);
 
       shell.cd(packagePath);
       shell.pwd();
@@ -106,7 +98,8 @@ class App extends React.Component<any, object> {
         selectedTagIndex: 0,
         selectedBranchName: 'master',
         specifiedCommitHash: '',
-        tags: bsTags
+        tags: bsTags,
+        specifiedBsPackage: specifiedPackagesMap[packageName]   // can this ever be null?
       };
       bsPackages.push(bsPackage);
       this.props.addPackage(bsPackage);
@@ -115,17 +108,28 @@ class App extends React.Component<any, object> {
       const specifiedBsPackage = specifiedPackagesMap[packageName];
       const specifiedBsPackageVersion = specifiedBsPackage.version;
 
-      console.log('bsPackage: ', packageName);
-      bsTags.forEach( (tag: BsTag) => {
+      bsTags.forEach( (tag: BsTag, tagIndex) => {
         const tagName = tag.name;
         const packageVersionForTag = tagName.substr(1);
 
         if (semver.intersects(specifiedBsPackageVersion, packageVersionForTag)) {
-            console.log('Candidate for package ', packageName);
-            console.log('tag version: ', packageVersionForTag);
-            console.log('package.json version: ', specifiedBsPackageVersion);
+
+          // if a compatible package has already been found, use the higher numbered package
+          if (!isNil(bsPackage.tagIndexForPackageDotJsonPackageVersion)) {
+            const tagIndexForPackageDotJsonPackageVersion = bsPackage.tagIndexForPackageDotJsonPackageVersion;
+            const tagForPackageDotJsonPackageVersion = bsTags[tagIndexForPackageDotJsonPackageVersion];
+            const packageDotJsonPackageVersion = tagForPackageDotJsonPackageVersion.name.substr(1);
+            if (semver.gt(packageVersionForTag, packageDotJsonPackageVersion)) {
+              bsPackage.tagIndexForPackageDotJsonPackageVersion = tagIndex;
+            }
+          }
+          else {
+            bsPackage.tagIndexForPackageDotJsonPackageVersion = tagIndex;
+          }
         }
       });
+
+      console.log(bsPackage);
 
       // get the last n commits on the current branch for this package
       // currentBranch=$(git branch | grep \* | cut -d ' ' -f2)
@@ -250,26 +254,40 @@ class App extends React.Component<any, object> {
         console.log('gitFetchOutput: ', gitFetchOutput);
 
         switch (bsPackage.packageVersionSelector) {
-          case 'tag': {
+          case PackageVersionSelectorType.Tag: {
             const bsTag: BsTag = bsPackage.tags[bsPackage.selectedTagIndex];
             checkoutSpecifier = bsTag.commit.substr(7, 40);
             console.log('commit: ', checkoutSpecifier);
             break;
           }
-          case 'branch': {
+          case PackageVersionSelectorType.Branch: {
             checkoutSpecifier = bsPackage.selectedBranchName;
             console.log('branchName: ', checkoutSpecifier);
             break;
           }
-          case 'commit': {
+          case PackageVersionSelectorType.Commit: {
             checkoutSpecifier = bsPackage.specifiedCommitHash;
             console.log('commit: ', checkoutSpecifier);
             break;
           }
+          case PackageVersionSelectorType.PackageDotJsonVersion: {
+            const packageVersion = bsPackage.specifiedBsPackage.version;
+            // find the tag, and therefore the commit that corresponds to this version
+            // fix me up
+            bsPackage.tags.forEach( (bsTag) => {
+              if (bsTag.name.substr(1) === packageVersion) {
+                checkoutSpecifier = bsTag.commit.substr(7, 40);
+                console.log('packageVersionSelector: ', checkoutSpecifier);
+              }
+            });
+            break;
+          }
         }
 
-        const gitCheckoutOutput: string = shell.exec('git checkout ' + checkoutSpecifier).stdout;
-        console.log('gitCheckoutOutput: ', gitFetchOutput);
+        if (checkoutSpecifier !== '') {
+          const gitCheckoutOutput: string = shell.exec('git checkout ' + checkoutSpecifier).stdout;
+          console.log('gitCheckoutOutput: ', gitFetchOutput);
+        }
       }
     }
   }
@@ -295,8 +313,6 @@ class App extends React.Component<any, object> {
 
   buildPackageRow(bsPackage: BsPackage) {
 
-    console.log('buildPackageRow: ', bsPackage);
-
     const tagOptions: any = this.buildTagOptions(bsPackage);
 
     const self: any = this;
@@ -311,22 +327,29 @@ class App extends React.Component<any, object> {
         <TableRowColumn>
           <RadioButtonGroup
             name='packageIdType'
-            defaultSelected={bsPackage.name + ':tag'}
+            defaultSelected={bsPackage.name + ':' + PackageVersionSelectorType.Tag}
             onChange={self.setPackageVersionSelector}
           >
             <RadioButton
-              value={bsPackage.name + ':tag'}
+              value={bsPackage.name + ':' + PackageVersionSelectorType.Tag}
               label='Tag'
             />
             <RadioButton
-              value={bsPackage.name + ':branch'}
+              value={bsPackage.name + ':' + PackageVersionSelectorType.Branch}
               label='Branch'
             />
             <RadioButton
-              value={bsPackage.name + ':commit'}
+              value={bsPackage.name + ':' + PackageVersionSelectorType.Commit}
               label='Commit'
             />
+            <RadioButton
+              value={bsPackage.name + ':' + PackageVersionSelectorType.PackageDotJsonVersion}
+              label='Version in package.json'
+            />
           </RadioButtonGroup>
+        </TableRowColumn>
+        <TableRowColumn>
+          {bsPackage.specifiedBsPackage.version}
         </TableRowColumn>
         <TableRowColumn>
           <SelectField
@@ -388,6 +411,7 @@ class App extends React.Component<any, object> {
               <TableRow>
                 <TableHeaderColumn>Package name</TableHeaderColumn>
                 <TableHeaderColumn>Package Version Selector</TableHeaderColumn>
+                <TableHeaderColumn>Version in bacon's package.json</TableHeaderColumn>
                 <TableHeaderColumn>Tags</TableHeaderColumn>
                 <TableHeaderColumn>Branch</TableHeaderColumn>
                 <TableHeaderColumn>Commit Hash</TableHeaderColumn>
