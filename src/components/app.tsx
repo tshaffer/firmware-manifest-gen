@@ -45,11 +45,24 @@ class App extends React.Component<any, object> {
     super(props);
 
     // specify packages
+    this.packageNames.push('ba-schedule');
+    this.packageNames.push('ba-uw-dm');
+    this.packageNames.push('ba-uw-manager');
+    this.packageNames.push('bacon-theme');
     this.packageNames.push('baconcore');
     this.packageNames.push('bpfimporter');
+    this.packageNames.push('bs-content-manager');
+    this.packageNames.push('bs-device-artifacts');
+    this.packageNames.push('bs-playlist-dm');
+    this.packageNames.push('bs-widgets');
+    this.packageNames.push('bscore');
+    this.packageNames.push('bsdatamodel');
+    this.packageNames.push('bsdevicesetup');
+    // this.packageNames.push('bsn-ui-v2-ns');
+    this.packageNames.push('bsnconnector');
     this.packageNames.push('bspublisher');
-    // this.packageNames.push('bsdatamodel');
-    // this.packageNames.push('bs-content-manager');
+    this.packageNames.push('fsconnector');
+    this.packageNames.push('fsmetadata');
 
     this.setPackageVersionSelector = this.setPackageVersionSelector.bind(this);
     this.selectTag = this.selectTag.bind(this);
@@ -85,7 +98,7 @@ class App extends React.Component<any, object> {
         currentVersion,
         packageDotJsonSpecifiedPackage: packageDotJsonVersionsMap[packageName],   //  ever null? (causing a crash?)
         tags: bsTags,
-        packageVersionSelector: 'tag',
+        packageVersionSelector: PackageVersionSelectorType.Current,
         selectedTagIndex: 0,
         selectedBranchName: 'master',
         specifiedCommitHash: '',
@@ -96,27 +109,29 @@ class App extends React.Component<any, object> {
       // see if there's a tag in the list of tags that match what's in package.json
       const specifiedBsPackage = packageDotJsonVersionsMap[packageName];
       const specifiedBsPackageVersion = specifiedBsPackage.version;
+      if (semver.valid(specifiedBsPackageVersion)) {
+        bsTags.forEach((tag: BsTag, tagIndex) => {
+          const tagName = tag.name;
+          const packageVersionForTag = tagName.substr(1);
 
-      bsTags.forEach( (tag: BsTag, tagIndex) => {
-        const tagName = tag.name;
-        const packageVersionForTag = tagName.substr(1);
-
-        if (semver.intersects(specifiedBsPackageVersion, packageVersionForTag)) {
-
-          // if a compatible package has already been found, use the higher numbered package
-          if (!isNil(bsPackage.tagIndexForPackageDotJsonPackageVersion)) {
-            const tagIndexForPackageDotJsonPackageVersion = bsPackage.tagIndexForPackageDotJsonPackageVersion;
-            const tagForPackageDotJsonPackageVersion = bsTags[tagIndexForPackageDotJsonPackageVersion];
-            const packageDotJsonPackageVersion = tagForPackageDotJsonPackageVersion.name.substr(1);
-            if (semver.gt(packageVersionForTag, packageDotJsonPackageVersion)) {
-              bsPackage.tagIndexForPackageDotJsonPackageVersion = tagIndex;
+          if (semver.valid(packageVersionForTag)) {
+            if (semver.intersects(specifiedBsPackageVersion, packageVersionForTag)) {
+              // if a compatible package has already been found, use the higher numbered package
+              if (!isNil(bsPackage.tagIndexForPackageDotJsonPackageVersion)) {
+                const tagIndexForPackageDotJsonPackageVersion = bsPackage.tagIndexForPackageDotJsonPackageVersion;
+                const tagForPackageDotJsonPackageVersion = bsTags[tagIndexForPackageDotJsonPackageVersion];
+                const packageDotJsonPackageVersion = tagForPackageDotJsonPackageVersion.name.substr(1);
+                if (semver.gt(packageVersionForTag, packageDotJsonPackageVersion)) {
+                  bsPackage.tagIndexForPackageDotJsonPackageVersion = tagIndex;
+                }
+              }
+              else {
+                bsPackage.tagIndexForPackageDotJsonPackageVersion = tagIndex;
+              }
             }
           }
-          else {
-            bsPackage.tagIndexForPackageDotJsonPackageVersion = tagIndex;
-          }
-        }
-      });
+        });
+      }
 
       console.log(bsPackage);
 
@@ -287,7 +302,12 @@ class App extends React.Component<any, object> {
         shell.cd(packagePath);
         shell.pwd();
 
-        const gitFetchOutput: string = shell.exec('git fetch').stdout;
+        // TODO - it may be necessary to perform 'git fetch' for each branch to get the latest info (tags at least)
+        // TODO - if that is done, then this 'git fetch' can be eliminated
+        let gitFetchOutput: string = '';
+        if (bsPackage.packageVersionSelector !== PackageVersionSelectorType.Current) {
+          gitFetchOutput = shell.exec('git fetch').stdout;
+        }
         console.log('gitFetchOutput: ', gitFetchOutput);
 
         switch (bsPackage.packageVersionSelector) {
@@ -319,8 +339,9 @@ class App extends React.Component<any, object> {
             });
             break;
           }
-          case PackageVersionSelectorType.NoChange: {
+          case PackageVersionSelectorType.Current: {
             // no change
+            break;
           }
           default: {
             debugger;
@@ -328,8 +349,13 @@ class App extends React.Component<any, object> {
         }
 
         if (checkoutSpecifier !== '') {
-          const gitCheckoutOutput: string = shell.exec('git checkout ' + checkoutSpecifier).stdout;
-          console.log('gitCheckoutOutput: ', gitFetchOutput);
+          const gitCheckoutOutput: shell.ExecOutputReturnValue = shell.exec('git checkout ' + checkoutSpecifier);
+          if (gitCheckoutOutput.stderr !== '') {
+            alert(gitCheckoutOutput.stderr);
+          }
+          else {
+            console.log('gitCheckoutOutput: ', gitCheckoutOutput.stdout);
+          }
         }
       }
     }
@@ -391,11 +417,11 @@ class App extends React.Component<any, object> {
         <TableRowColumn>
           <RadioButtonGroup
             name='packageIdType'
-            defaultSelected={bsPackage.name + ':' + PackageVersionSelectorType.Tag}
+            defaultSelected={bsPackage.name + ':' + PackageVersionSelectorType.Current}
             onChange={self.setPackageVersionSelector}
           >
             <RadioButton
-              value={bsPackage.name + ':' + PackageVersionSelectorType.NoChange}
+              value={bsPackage.name + ':' + PackageVersionSelectorType.Current}
               label='Current'
             />
             <RadioButton

@@ -1,4 +1,7 @@
-import { BsPackage } from '../interfaces';
+import {
+  BsPackage,
+  PackageVersionSelectorType,
+} from '../interfaces';
 
 // ------------------------------------
 // Constants
@@ -19,7 +22,7 @@ export function addPackage(bsPackage: BsPackage) {
   };
 }
 
-export function setPackageVersionSelector(packageName: string, packageVersionSelector: string) {
+export function setPackageVersionSelector(packageName: string, packageVersionSelector: PackageVersionSelectorType) {
   return {
     type: SET_PACKAGE_VERSION_SELECTOR,
     payload: {
