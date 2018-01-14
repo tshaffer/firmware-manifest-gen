@@ -396,11 +396,11 @@ class App extends React.Component<any, object> {
           >
             <RadioButton
               value={bsPackage.name + ':' + PackageVersionSelectorType.NoChange}
-              label='Current version'
+              label='Current'
             />
             <RadioButton
               value={bsPackage.name + ':' + PackageVersionSelectorType.PackageDotJsonVersion}
-              label='Package.json version'
+              label='Compatible'
               disabled={disabled}
             />
             <RadioButton
@@ -480,9 +480,9 @@ class App extends React.Component<any, object> {
               <TableRow>
                 <TableHeaderColumn>Package name</TableHeaderColumn>
                 <TableHeaderColumn>Current version</TableHeaderColumn>
-                <TableHeaderColumn>Version in bacon's package.json</TableHeaderColumn>
+                <TableHeaderColumn>Package.json version</TableHeaderColumn>
                 <TableHeaderColumn>Package Version Selector</TableHeaderColumn>
-                <TableHeaderColumn>>= Bacon Package.json</TableHeaderColumn>
+                <TableHeaderColumn>Compatible Version</TableHeaderColumn>
                 <TableHeaderColumn>Tags</TableHeaderColumn>
                 <TableHeaderColumn>Commit Hash</TableHeaderColumn>
                 <TableHeaderColumn>Branch</TableHeaderColumn>
