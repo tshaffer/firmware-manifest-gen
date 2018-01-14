@@ -36,5 +36,6 @@ export class PackageVersionSelectorType {
   static Branch = 'branch';
   static Commit = 'commitMessage';
   static PackageDotJsonVersion = 'packageDotJsonVersion';
+  static NoChange = 'noChange';
 }
 Object.freeze(PackageVersionSelectorType);

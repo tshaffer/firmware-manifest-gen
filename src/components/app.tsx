@@ -319,6 +319,12 @@ class App extends React.Component<any, object> {
             });
             break;
           }
+          case PackageVersionSelectorType.NoChange: {
+            // no change
+          }
+          default: {
+            debugger;
+          }
         }
 
         if (checkoutSpecifier !== '') {
@@ -388,6 +394,10 @@ class App extends React.Component<any, object> {
             defaultSelected={bsPackage.name + ':' + PackageVersionSelectorType.Tag}
             onChange={self.setPackageVersionSelector}
           >
+            <RadioButton
+              value={bsPackage.name + ':' + PackageVersionSelectorType.NoChange}
+              label='Current version'
+            />
             <RadioButton
               value={bsPackage.name + ':' + PackageVersionSelectorType.PackageDotJsonVersion}
               label='Package.json version'
