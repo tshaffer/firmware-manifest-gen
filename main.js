@@ -1,4 +1,4 @@
-console.log("hello autoRunTS");
+console.log("Bacon Comp Configurator");
 const electron = require('electron');
 
 // Module to control application life.

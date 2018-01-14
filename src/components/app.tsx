@@ -39,9 +39,18 @@ import {
 class App extends React.Component<any, object> {
 
   packageBaseDir: string = '/Users/tedshaffer/Documents/Projects/bacon-comp/';
+  packageNames: string[] = [];
 
   constructor(props: any){
     super(props);
+
+    // specify packages
+    this.packageNames.push('baconcore');
+    this.packageNames.push('bpfimporter');
+    this.packageNames.push('bspublisher');
+    // this.packageNames.push('bsdatamodel');
+    // this.packageNames.push('bs-content-manager');
+
     this.setPackageVersionSelector = this.setPackageVersionSelector.bind(this);
     this.selectTag = this.selectTag.bind(this);
     this.setBranchName = this.setBranchName.bind(this);
@@ -51,36 +60,12 @@ class App extends React.Component<any, object> {
 
   componentDidMount() {
 
-    // parse bacon's package.json
-    const specifiedPackagesMap: any = {};
-    const baconPackageJsonPath = this.packageBaseDir.concat('bacon/package.json');
-    const baconPackageJson = fs.readJsonSync(baconPackageJsonPath);
-
-    for (const dependencyName in baconPackageJson.dependencies) {
-      if (baconPackageJson.dependencies.hasOwnProperty(dependencyName)) {
-        if (dependencyName.startsWith('@brightsign/')) {
-
-          const bsPackageName: string = dependencyName.substr(12);
-          const bsPackageVersionSpec: string = baconPackageJson.dependencies[dependencyName];
-
-          const specifiedBsPackage: SpecifiedBsPackage = {
-            name: bsPackageName,
-            version: bsPackageVersionSpec
-          };
-          specifiedPackagesMap[bsPackageName] = specifiedBsPackage;
-        }
-      }
-    }
+    // get version (version of published name package) of each package as specified in bacon's package.json
+    const packageDotJsonVersionsMap: any = this.parseBaconPackageDotJson();
 
     const bsPackages: BsPackage[] = [];
 
-    const packageNames: string[] = [];
-    packageNames.push('baconcore');
-    packageNames.push('bpfimporter');
-    packageNames.push('bspublisher');
-    // packageNames.push('bs-content-manager');
-
-    packageNames.forEach((packageName) => {
+    this.packageNames.forEach((packageName) => {
 
       console.log('processing ', packageName);
 
@@ -90,22 +75,26 @@ class App extends React.Component<any, object> {
       shell.pwd();
 
       const bsTags: BsTag[] = this.getTags();
+
       // this.getBranches();
+
+      const currentVersion = this.getPackageCurrentVersion(bsTags);
 
       const bsPackage: BsPackage = {
         name: packageName,
+        currentVersion,
+        packageDotJsonSpecifiedPackage: packageDotJsonVersionsMap[packageName],   //  ever null? (causing a crash?)
+        tags: bsTags,
         packageVersionSelector: 'tag',
         selectedTagIndex: 0,
         selectedBranchName: 'master',
         specifiedCommitHash: '',
-        tags: bsTags,
-        specifiedBsPackage: specifiedPackagesMap[packageName]   // can this ever be null?
       };
       bsPackages.push(bsPackage);
       this.props.addPackage(bsPackage);
 
       // see if there's a tag in the list of tags that match what's in package.json
-      const specifiedBsPackage = specifiedPackagesMap[packageName];
+      const specifiedBsPackage = packageDotJsonVersionsMap[packageName];
       const specifiedBsPackageVersion = specifiedBsPackage.version;
 
       bsTags.forEach( (tag: BsTag, tagIndex) => {
@@ -144,22 +133,70 @@ class App extends React.Component<any, object> {
       // console.log('currentBranch: ', currentBranch);
 
       // git log -$numCommits
-      const numRecentCommits = 3;
-      const recentCommits: RecentCommitData[] = [];
-      for (let i = 0; i < (numRecentCommits - 1); i++) {
-        const commitMessage = shell.exec('git log -1 --skip=' + i.toString()).stdout;
-        const commitHash = commitMessage.substr(7, 40);
-        recentCommits.push( {
-          commitHash,
-          commitMessage
-        });
-      }
-
-      // console.log('Recent commit messages:');
-      // console.log(recentCommits);
-      // console.log('');
+      // const numRecentCommits = 3;
+      // const recentCommits: RecentCommitData[] = [];
+      // for (let i = 0; i < (numRecentCommits - 1); i++) {
+      //   const commitMessage = shell.exec('git log -1 --skip=' + i.toString()).stdout;
+      //   const commitHash = this.getCommitHashFromCommitMessage(commitMessage);
+      //   recentCommits.push( {
+      //     commitHash,
+      //     commitMessage
+      //   });
+      // }
     });
   }
+
+  // return the current version of the current package - either the tag name or the commit hash
+  getPackageCurrentVersion(bsTags: BsTag[]): string {
+    let currentVersion: string = '';
+    const commitMessage = shell.exec('git log -1').stdout;
+    const commitHash = this.getCommitHashFromCommitMessage(commitMessage);
+    bsTags.forEach( (tag, index) => {
+      if (tag.commitHash === commitHash) {
+        currentVersion = tag.name;
+      }
+    });
+    if (currentVersion === '') {
+      currentVersion = commitHash;
+    }
+
+    return currentVersion;
+  }
+
+  // return a structure mapping a package name to an object that contains
+  //    packageName
+  //    the version (semver format) specified in package.json
+  parseBaconPackageDotJson(): any {
+    const packageDotJsonVersionsMap: any = {};
+    const baconPackageJsonPath = this.packageBaseDir.concat('bacon/package.json');
+    const baconPackageJson = fs.readJsonSync(baconPackageJsonPath);
+
+    for (const dependencyName in baconPackageJson.dependencies) {
+      if (baconPackageJson.dependencies.hasOwnProperty(dependencyName)) {
+        if (dependencyName.startsWith('@brightsign/')) {
+
+          const bsPackageName: string = dependencyName.substr(12);
+          const bsPackageVersionSpec: string = baconPackageJson.dependencies[dependencyName];
+
+          const specifiedBsPackage: SpecifiedBsPackage = {
+            name: bsPackageName,
+            version: bsPackageVersionSpec
+          };
+          packageDotJsonVersionsMap[bsPackageName] = specifiedBsPackage;
+        }
+      }
+    }
+
+    return packageDotJsonVersionsMap;
+  }
+
+  getCommitHashFromCommitMessage(commitMessage: string) : string {
+    return commitMessage.substr(7, 40);
+  }
+
+  // get all tags for the active branch
+  //    tag name
+  //    commitMessage
 
   getTags() {
 
@@ -178,23 +215,23 @@ class App extends React.Component<any, object> {
 
     tags.forEach((tag) => {
 
-      // get the commit information for the tag
-      // commitLine=$(git show $tag | grep commit)
+      // get the commitMessage information for the tag
+      // commitLine=$(git show $tag | grep commitMessage)
       const gitShowCmd: string = 'git show ' + tag + ' | grep commit'
       const commitLine: string = shell.exec(gitShowCmd).stdout;
-      const commitHash: string = commitLine.split(' ')[1];
+      let commitHash: string = commitLine.split(' ')[1];
+      if (commitHash.endsWith('\n')) {
+        commitHash = commitHash.trim();
+      }
 
       // commitInfo=$(git log -1 $commitHash)
       const gitLogCmd: string = 'git log -1 ' + commitHash;
       const commitInfo: string = shell.exec(gitLogCmd).stdout;
 
-      // console.log('BsTag:', tag);
-      // console.log(commitInfo);
-      // console.log('');
-
       bsTags.push( {
         name: tag,
-        commit: commitInfo
+        commitMessage: commitInfo,
+        commitHash
       });
     });
 
@@ -256,8 +293,8 @@ class App extends React.Component<any, object> {
         switch (bsPackage.packageVersionSelector) {
           case PackageVersionSelectorType.Tag: {
             const bsTag: BsTag = bsPackage.tags[bsPackage.selectedTagIndex];
-            checkoutSpecifier = bsTag.commit.substr(7, 40);
-            console.log('commit: ', checkoutSpecifier);
+            checkoutSpecifier = this.getCommitHashFromCommitMessage(bsTag.commitMessage);
+            console.log('commitMessage: ', checkoutSpecifier);
             break;
           }
           case PackageVersionSelectorType.Branch: {
@@ -267,16 +304,16 @@ class App extends React.Component<any, object> {
           }
           case PackageVersionSelectorType.Commit: {
             checkoutSpecifier = bsPackage.specifiedCommitHash;
-            console.log('commit: ', checkoutSpecifier);
+            console.log('commitMessage: ', checkoutSpecifier);
             break;
           }
           case PackageVersionSelectorType.PackageDotJsonVersion: {
-            const packageVersion = bsPackage.specifiedBsPackage.version;
-            // find the tag, and therefore the commit that corresponds to this version
+            const packageVersion = bsPackage.packageDotJsonSpecifiedPackage.version;
+            // find the tag, and therefore the commitMessage that corresponds to this version
             // fix me up
             bsPackage.tags.forEach( (bsTag) => {
               if (bsTag.name.substr(1) === packageVersion) {
-                checkoutSpecifier = bsTag.commit.substr(7, 40);
+                checkoutSpecifier = this.getCommitHashFromCommitMessage(bsTag.commitMessage);
                 console.log('packageVersionSelector: ', checkoutSpecifier);
               }
             });
@@ -340,7 +377,10 @@ class App extends React.Component<any, object> {
           {bsPackage.name}
         </TableRowColumn>
         <TableRowColumn>
-          {bsPackage.specifiedBsPackage.version}
+          {bsPackage.currentVersion}
+        </TableRowColumn>
+        <TableRowColumn>
+          {bsPackage.packageDotJsonSpecifiedPackage.version}
         </TableRowColumn>
         <TableRowColumn>
           <RadioButtonGroup
@@ -429,6 +469,7 @@ class App extends React.Component<any, object> {
             >
               <TableRow>
                 <TableHeaderColumn>Package name</TableHeaderColumn>
+                <TableHeaderColumn>Current version</TableHeaderColumn>
                 <TableHeaderColumn>Version in bacon's package.json</TableHeaderColumn>
                 <TableHeaderColumn>Package Version Selector</TableHeaderColumn>
                 <TableHeaderColumn>>= Bacon Package.json</TableHeaderColumn>
