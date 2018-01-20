@@ -44,6 +44,7 @@ class App extends React.Component<any, object> {
   constructor(props: any){
     super(props);
 
+    this.handleBeginTransfer = this.handleBeginTransfer.bind(this);
     // specify packages
     this.packageNames.push('ba-schedule');
     this.packageNames.push('ba-uw-dm');
@@ -71,94 +72,8 @@ class App extends React.Component<any, object> {
     this.configureButtonClicked = this.configureButtonClicked.bind(this);
   }
 
-  componentDidMount() {
-
-    // get version (version of published name package) of each package as specified in bacon's package.json
-    const packageDotJsonVersionsMap: any = this.parseBaconPackageDotJson();
-
-    const bsPackages: BsPackage[] = [];
-
-    this.packageNames.forEach((packageName) => {
-
-      console.log('processing ', packageName);
-
-      const packagePath = this.packageBaseDir.concat(packageName);
-
-      shell.cd(packagePath);
-      shell.pwd();
-
-      const bsTags: BsTag[] = this.getTags();
-
-      // this.getBranches();
-
-      const currentVersion = this.getPackageCurrentVersion(bsTags);
-
-      const bsPackage: BsPackage = {
-        name: packageName,
-        currentVersion,
-        packageDotJsonSpecifiedPackage: packageDotJsonVersionsMap[packageName],   //  ever null? (causing a crash?)
-        tags: bsTags,
-        packageVersionSelector: PackageVersionSelectorType.Current,
-        selectedTagIndex: 0,
-        selectedBranchName: 'master',
-        specifiedCommitHash: '',
-      };
-      bsPackages.push(bsPackage);
-      this.props.addPackage(bsPackage);
-
-      // see if there's a tag in the list of tags that match what's in package.json
-      const specifiedBsPackage = packageDotJsonVersionsMap[packageName];
-      const specifiedBsPackageVersion = specifiedBsPackage.version;
-      if (semver.valid(specifiedBsPackageVersion)) {
-        bsTags.forEach((tag: BsTag, tagIndex) => {
-          const tagName = tag.name;
-          const packageVersionForTag = tagName.substr(1);
-
-          if (semver.valid(packageVersionForTag)) {
-            if (semver.intersects(specifiedBsPackageVersion, packageVersionForTag)) {
-              // if a compatible package has already been found, use the higher numbered package
-              if (!isNil(bsPackage.tagIndexForPackageDotJsonPackageVersion)) {
-                const tagIndexForPackageDotJsonPackageVersion = bsPackage.tagIndexForPackageDotJsonPackageVersion;
-                const tagForPackageDotJsonPackageVersion = bsTags[tagIndexForPackageDotJsonPackageVersion];
-                const packageDotJsonPackageVersion = tagForPackageDotJsonPackageVersion.name.substr(1);
-                if (semver.gt(packageVersionForTag, packageDotJsonPackageVersion)) {
-                  bsPackage.tagIndexForPackageDotJsonPackageVersion = tagIndex;
-                }
-              }
-              else {
-                bsPackage.tagIndexForPackageDotJsonPackageVersion = tagIndex;
-              }
-            }
-          }
-        });
-      }
-
-      console.log(bsPackage);
-
-      // get the last n commits on the current branch for this package
-      // currentBranch=$(git branch | grep \* | cut -d ' ' -f2)
-      let currentBranch: string = '';
-      const rawBranches: string = shell.exec('git branch').stdout;
-      const branches: string[] = rawBranches.split('\n');
-      branches.forEach((branchName) => {
-        if (branchName.startsWith('* ')) {
-          currentBranch = branchName.substring(2);
-        }
-      });
-      // console.log('currentBranch: ', currentBranch);
-
-      // git log -$numCommits
-      // const numRecentCommits = 3;
-      // const recentCommits: RecentCommitData[] = [];
-      // for (let i = 0; i < (numRecentCommits - 1); i++) {
-      //   const commitMessage = shell.exec('git log -1 --skip=' + i.toString()).stdout;
-      //   const commitHash = this.getCommitHashFromCommitMessage(commitMessage);
-      //   recentCommits.push( {
-      //     commitHash,
-      //     commitMessage
-      //   });
-      // }
-    });
+  handleBeginTransfer() {
+    console.log('handleBeginTranfer invoked');
   }
 
   // return the current version of the current package - either the tag name or the commit hash
@@ -489,39 +404,65 @@ class App extends React.Component<any, object> {
   }
 
 // <TableHeaderColumn>Tag Commit</TableHeaderColumn>
+//   render() {
+//
+//     const bsPackageRows: any[] = this.buildPackageRows();
+//
+//     return (
+//       <MuiThemeProvider>
+//         <div>
+//
+//           <Table>
+//             <TableHeader
+//               displaySelectAll={false}
+//               adjustForCheckbox={false}
+//               enableSelectAll={false}
+//             >
+//               <TableRow>
+//                 <TableHeaderColumn>Package name</TableHeaderColumn>
+//                 <TableHeaderColumn>Current version</TableHeaderColumn>
+//                 <TableHeaderColumn>Package.json version</TableHeaderColumn>
+//                 <TableHeaderColumn>Package Version Selector</TableHeaderColumn>
+//                 <TableHeaderColumn>Compatible Version</TableHeaderColumn>
+//                 <TableHeaderColumn>Tags</TableHeaderColumn>
+//                 <TableHeaderColumn>Commit Hash</TableHeaderColumn>
+//                 <TableHeaderColumn>Branch</TableHeaderColumn>
+//               </TableRow>
+//             </TableHeader>
+//             <TableBody
+//               displayRowCheckbox={false}
+//             >
+//               {bsPackageRows}
+//             </TableBody>
+//           </Table>
+//
+//           <RaisedButton label='Configure' onClick={this.configureButtonClicked}/>
+//         </div>
+//       </MuiThemeProvider>
+//     );
+//   }
+
   render() {
-
-    const bsPackageRows: any[] = this.buildPackageRows();
-
     return (
       <MuiThemeProvider>
         <div>
-
-          <Table>
-            <TableHeader
-              displaySelectAll={false}
-              adjustForCheckbox={false}
-              enableSelectAll={false}
-            >
-              <TableRow>
-                <TableHeaderColumn>Package name</TableHeaderColumn>
-                <TableHeaderColumn>Current version</TableHeaderColumn>
-                <TableHeaderColumn>Package.json version</TableHeaderColumn>
-                <TableHeaderColumn>Package Version Selector</TableHeaderColumn>
-                <TableHeaderColumn>Compatible Version</TableHeaderColumn>
-                <TableHeaderColumn>Tags</TableHeaderColumn>
-                <TableHeaderColumn>Commit Hash</TableHeaderColumn>
-                <TableHeaderColumn>Branch</TableHeaderColumn>
-              </TableRow>
-            </TableHeader>
-            <TableBody
-              displayRowCheckbox={false}
-            >
-              {bsPackageRows}
-            </TableBody>
-          </Table>
-
-          <RaisedButton label='Configure' onClick={this.configureButtonClicked}/>
+          <div>
+            Content folder:
+            <TextField
+              id={'contentFolder'}
+              defaultValue=''
+            />
+          </div>
+          <div>
+            BrightSign IP Address:
+            <TextField
+              id={'brightSignIPAddress'}
+              defaultValue=''
+            />
+          </div>
+          <div>
+            <RaisedButton label='Begin Transfer' onClick={this.handleBeginTransfer}/>
+          </div>
         </div>
       </MuiThemeProvider>
     );

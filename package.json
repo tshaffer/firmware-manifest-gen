@@ -1,7 +1,7 @@
 {
-  "name": "bacon-build-configurator",
+  "name": "content-synchronizer",
   "version": "0.0.1",
-  "description": "configure for bacon-com builders",
+  "description": "synchronize content between pc and brightsign",
   "main": "main.js",
   "scripts": {
     "build": "node node_modules/webpack/bin/webpack --config ./webpack.config.js --watch",
