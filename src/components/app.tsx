@@ -1,3 +1,7 @@
+import {
+  remote,
+} from 'electron';
+
 import { isNil } from 'lodash';
 
 import * as React from 'react';
@@ -48,9 +52,27 @@ class App extends React.Component<any, object> {
       status: '',
     };
 
+    this.handleBrowse = this.handleBrowse.bind(this);
     this.handleContentFolderChange = this.handleContentFolderChange.bind(this);
     this.handleBrightSignIpAddressChange = this.handleBrightSignIpAddressChange.bind(this);
     this.handleBeginTransfer = this.handleBeginTransfer.bind(this);
+  }
+
+  handleBrowse = () => {
+
+    const dialog: any = remote.dialog;
+    dialog.showOpenDialog({
+      defaultPath: '/Users/tedshaffer/Desktop/aa',
+      properties: [
+        'openDirectory',
+      ]
+    }, (selectedPaths: string[]) => {
+      if (!isNil(selectedPaths) && selectedPaths.length === 1) {
+        this.setState({
+          contentFolder: selectedPaths[0]
+        });
+      }
+    });
   }
 
   handleContentFolderChange = (event: any) => {
@@ -250,7 +272,13 @@ class App extends React.Component<any, object> {
               id={'contentFolder'}
               value={self.state.contentFolder}
               onChange={self.handleContentFolderChange}
+              style={{
+                width: '500px',
+                marginLeft: '10px',
+                marginRight: '10px',
+              }}
             />
+            <RaisedButton label='Browse' onClick={self.handleBrowse}/>
           </div>
           <div>
             BrightSign IP Address:
@@ -258,6 +286,9 @@ class App extends React.Component<any, object> {
               id={'brightSignIpAddress'}
               value={this.state.brightSignIpAddress}
               onChange={this.handleBrightSignIpAddressChange}
+              style={{
+                marginLeft: '10px',
+              }}
             />
           </div>
           <div>
