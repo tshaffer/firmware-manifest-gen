@@ -4,7 +4,11 @@ import * as React from 'react';
 
 import * as path from 'path';
 import isomorphicPath from 'isomorphic-path';
-import * as fs from 'fs-extra';
+
+import * as fse from 'fs-extra';
+import * as isomorphicFetch from 'isomorphic-fetch';
+
+import * as FormData from 'form-data';
 
 import * as recursive from 'recursive-readdir';
 
@@ -39,7 +43,7 @@ class App extends React.Component<any, object> {
 
     this.state = {
       contentFolder: '/Users/tedshaffer/Desktop/aa',
-      brightSignIpAddress: '',
+      brightSignIpAddress: '192.168.0.104',
       status: '',
     };
 
@@ -132,17 +136,69 @@ class App extends React.Component<any, object> {
     });
   }
 
+  httpUploadFile(hostname: string,
+                 endpoint: string,
+                 filePath: string,
+                 uploadHeaders: any[] = []): Promise<any> {
+    return new Promise((resolve, reject) => {
+      const url = 'http://' + hostname + ':8080' + endpoint; // TODO this should be a global const
+
+      // TODO get headers should be a utility function
+      const headers: any = {};
+      uploadHeaders.forEach((uploadHeader) => {
+        headers[uploadHeader.key] = uploadHeader.value;
+      });
+
+      // const fileContentsBuffer: Buffer = fse.readFileSync(filePath);
+      // const fileContents: string = fileContentsBuffer.toString();
+      // debugger;
+
+      // TODO get formData should be a utility function
+      const formData = new FormData();
+      formData.append('files', fse.createReadStream(filePath));
+      isomorphicFetch(url, {
+        method: 'POST',
+        headers,
+        body: formData
+      }).then((response: any) => {
+// TODO this should return response.json(). However, there are currently clients of this function
+// which make device api calls that respond with empty or non JSON bodies. These calls should be
+// handled through a different function.
+        resolve(response);
+      }).catch((err: any) => {
+        reject(err);
+      });
+    });
+  }
+
+  getFilesToTransfer(ipAddress: string, filePath: string) : Promise<string[]> {
+
+    return new Promise((resolve, reject) => {
+
+      this.httpUploadFile(ipAddress, '/GetFilesToTransfer', filePath, []).then((response: any) => {
+        return response.json();
+      }).then((filesToTransfer: any[]) => {
+        debugger;
+        console.log('poo');
+      });
+    });
+  }
+
   handleBeginTransfer() {
+
     console.log('handleBeginTranfer invoked');
 
     // List<FileToTransfer> filesInSite = GetSiteFiles(siteFolder);
-    this.getContentFiles(this.state.contentFolder).then( (filesToTransfer: FileToTransfer[]) => {
+    this.getContentFiles(this.state.contentFolder).then( (contentFiles: FileToTransfer[]) => {
       console.log('File info retrieved');
 
       // string xmlPath = GenerateFilesInSite(filesInSite);
-      this.generateFilesInSite(filesToTransfer).then( (filePath) => {
+      this.generateFilesInSite(contentFiles).then( (filePath) => {
+
         // List<string> relativePathsToTransfer = GetFilesToTransfer(ipAddress, xmlPath);
-        debugger;
+        this.getFilesToTransfer(this.state.brightSignIpAddress, filePath).then( (filesToTransfer) => {
+          debugger;
+        });
       });
     });
   }
