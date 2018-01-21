@@ -267,9 +267,13 @@ class App extends React.Component<any, object> {
             <TextField
               id='statusArea'
               multiLine={true}
-              rows={12}
-              rowsMax={12}
+              rows={24}
+              rowsMax={24}
               value={this.state.status}
+              style={{
+                width: '800px',
+              }}
+
             /><br />
             <br />
           </div>
