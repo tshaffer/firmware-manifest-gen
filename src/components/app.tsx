@@ -16,15 +16,8 @@ import * as FormData from 'form-data';
 
 import * as recursive from 'recursive-readdir';
 
-import { connect } from 'react-redux';
-import { bindActionCreators, Dispatch } from 'redux';
-
-import MenuItem from 'material-ui/MenuItem';
 import MuiThemeProvider from 'material-ui/styles/MuiThemeProvider';
-import {RadioButton, RadioButtonGroup} from 'material-ui/RadioButton';
 import RaisedButton from 'material-ui/RaisedButton';
-import SelectField from 'material-ui/SelectField';
-import {Table, TableBody, TableHeader, TableHeaderColumn, TableRow, TableRowColumn} from 'material-ui/Table';
 import TextField from 'material-ui/TextField';
 
 import * as nodeWrappers from '../nodeWrappers';
@@ -39,7 +32,7 @@ import {
   getFileInfo
 } from '../utilities';
 
-class App extends React.Component<any, object> {
+export default class App extends React.Component<any, object> {
 
   state: any;
 
@@ -304,7 +297,6 @@ class App extends React.Component<any, object> {
               style={{
                 width: '800px',
               }}
-
             /><br />
             <br />
           </div>
@@ -313,10 +305,3 @@ class App extends React.Component<any, object> {
     );
   }
 }
-
-function mapStateToProps(state : any) {
-  return {
-  };
-}
-
-export default connect(mapStateToProps)(App);
