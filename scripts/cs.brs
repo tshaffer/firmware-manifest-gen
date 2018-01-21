@@ -133,6 +133,9 @@ Sub FilePosted(userData as Object, e as Object)
 
 			' directories have been created - try again
 			ok = MoveFile(e.GetRequestBodyFile(), destinationFilename)
+			if ok then
+			  print "Move successful after directory creation"
+			endif
 
 		endif
 	endif

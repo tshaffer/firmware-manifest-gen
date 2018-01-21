@@ -72,6 +72,7 @@ class App extends React.Component<any, object> {
 
       recursive(contentFolder,  (err: Error, files: string[]) => {
 
+        // TODO - check err
         // `files` is an array of absolute file paths
         // console.log(err);
         // console.log(files);
@@ -168,10 +169,6 @@ class App extends React.Component<any, object> {
     });
   }
 
-  // parseFilesToTransferJson() {
-  //
-  // }
-
   getFilesToTransfer(ipAddress: string, filePath: string) : Promise<FileToTransferBs[]> {
 
     return new Promise((resolve, reject) => {
@@ -200,28 +197,40 @@ class App extends React.Component<any, object> {
   transferFiles(siteFolder: string, filesToTransfer: FileToTransferBs[], ipAddress: string) {
 
     filesToTransfer.forEach( (fileToTransfer) => {
-      // update status
       const relativePathToTransfer = fileToTransfer.relativepath;
+      this.appendStatus(relativePathToTransfer);
       const fullPath = isomorphicPath.join(siteFolder, relativePathToTransfer);
       const promise: any = this.uploadFileToBrightSign(fullPath, relativePathToTransfer, ipAddress);
     });
   }
 
+  setStatus(status: string) {
+    this.setState({
+      status,
+    });
+  }
+
+  appendStatus(statusToAppend: string) {
+    let xferStatus: string = this.state.status;
+    xferStatus += '\n' + statusToAppend;
+    this.setStatus(xferStatus);
+  }
+
   handleBeginTransfer() {
 
-    console.log('handleBeginTranfer invoked');
-
     this.getContentFiles(this.state.contentFolder).then( (contentFiles: FileToTransfer[]) => {
-      console.log('File info retrieved');
 
       this.generateFilesInSite(contentFiles).then( (filePath) => {
 
         this.getFilesToTransfer(this.state.brightSignIpAddress, filePath).then( (filesToTransfer) => {
 
           if (!isNil(filesToTransfer) && filesToTransfer.length > 0) {
-            // display status info
-            // TransferFiles(siteFolder, relativePathsToTransfer, ipAddress);
+            this.setStatus('Copying files to ' + this.state.brightSignIpAddress)
             this.transferFiles(this.state.contentFolder, filesToTransfer, this.state.brightSignIpAddress);
+            this.appendStatus('File transfer complete');
+          }
+          else {
+            this.setStatus('No files to transfer. Storage up to date');
           }
         });
       });
@@ -260,6 +269,7 @@ class App extends React.Component<any, object> {
               multiLine={true}
               rows={12}
               rowsMax={12}
+              value={this.state.status}
             /><br />
             <br />
           </div>
