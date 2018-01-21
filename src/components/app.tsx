@@ -2,8 +2,10 @@ import { isNil } from 'lodash';
 
 import * as React from 'react';
 
+import * as path from 'path';
 import * as fs from 'fs-extra';
 
+import * as recursive from 'recursive-readdir';
 
 import { connect } from 'react-redux';
 import { bindActionCreators, Dispatch } from 'redux';
@@ -26,13 +28,13 @@ import {
 } from '../store/packages';
 
 import {
-  BsPackage,
-  BsTag,
-  PackageVersionSelectorType,
-  RecentCommitData,
-  SpecifiedBsPackage,
-  // SpecifiedBsPackageMap,
+  FileInfo,
+  FileToTransfer,
 } from '../interfaces';
+
+import {
+  getFileInfo
+} from '../utilities';
 
 class App extends React.Component<any, object> {
 
@@ -42,14 +44,48 @@ class App extends React.Component<any, object> {
     super(props);
 
     this.state = {
-      contentFolder: '',
+      contentFolder: '/Users/tedshaffer/Desktop/aa',
       brightSignIpAddress: '',
       status: '',
     };
 
     this.handleContentFolderChange = this.handleContentFolderChange.bind(this);
-    this.handleContentFolderChange = this.handleContentFolderChange.bind(this);
     this.handleBrightSignIpAddressChange = this.handleBrightSignIpAddressChange.bind(this);
+    this.handleBeginTransfer = this.handleBeginTransfer.bind(this);
+  }
+
+  getContentFiles(contentFolder: string) : any[] {
+
+    const promises: any[] = [];
+
+    recursive(contentFolder,  (err: Error, files: string[]) => {
+      // `files` is an array of absolute file paths
+      console.log(err);
+      console.log(files);
+
+      files.forEach( (fullPath) => {
+        promises.push(getFileInfo(fullPath));
+      });
+    });
+
+    Promise.all(promises).then( (filesInfo: FileInfo[]) => {
+      filesInfo.forEach( (fileInfo: FileInfo) => {
+        const filePath: string = fileInfo.filePath;
+        const fileName: string = path.basename(fileInfo.filePath);
+        const relativePath: string = fileInfo.filePath.substr(this.state.contentFolder.length + 1);
+
+        const fileToTransfer: FileToTransfer = {
+          name: fileName,
+          relativePath,
+          size: fileInfo.size,
+          sha1: fileInfo.sha1
+        };
+
+        console.log(fileToTransfer);
+      });
+    });
+
+    return [];
   }
 
   handleContentFolderChange = (event: any) => {
@@ -66,6 +102,9 @@ class App extends React.Component<any, object> {
 
   handleBeginTransfer() {
     console.log('handleBeginTranfer invoked');
+
+    // List<FileToTransfer> filesInSite = GetSiteFiles(siteFolder);
+    const filesInSite = this.getContentFiles(this.state.contentFolder);
   }
 
   render() {
@@ -92,7 +131,7 @@ class App extends React.Component<any, object> {
             />
           </div>
           <div>
-            <RaisedButton label='Begin Transfer' onClick={this.handleBeginTransfer}/>
+            <RaisedButton label='Begin Transfer' onClick={self.handleBeginTransfer}/>
           </div>
           <div>
             <TextField

@@ -1,3 +1,16 @@
+export interface FileInfo {
+  filePath: string;
+  sha1: string;
+  size: number;
+}
+
+export interface FileToTransfer {
+  name: string;
+  relativePath: string;
+  size: number;
+  sha1: string;
+}
+
 export interface RecentCommitData {
   commitHash: string;
   commitMessage: string;
