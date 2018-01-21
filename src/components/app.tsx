@@ -36,10 +36,32 @@ import {
 
 class App extends React.Component<any, object> {
 
+  state: any;
+
   constructor(props: any){
     super(props);
 
-    this.handleBeginTransfer = this.handleBeginTransfer.bind(this);
+    this.state = {
+      contentFolder: '',
+      brightSignIpAddress: '',
+      status: '',
+    };
+
+    this.handleContentFolderChange = this.handleContentFolderChange.bind(this);
+    this.handleContentFolderChange = this.handleContentFolderChange.bind(this);
+    this.handleBrightSignIpAddressChange = this.handleBrightSignIpAddressChange.bind(this);
+  }
+
+  handleContentFolderChange = (event: any) => {
+    this.setState({
+      contentFolder: event.target.value,
+    });
+  }
+
+  handleBrightSignIpAddressChange = (event: any) => {
+    this.setState({
+      brightSignIpAddress: event.target.value,
+    });
   }
 
   handleBeginTransfer() {
@@ -47,6 +69,9 @@ class App extends React.Component<any, object> {
   }
 
   render() {
+
+    const self = this;
+
     return (
       <MuiThemeProvider>
         <div>
@@ -54,14 +79,16 @@ class App extends React.Component<any, object> {
             Content folder:
             <TextField
               id={'contentFolder'}
-              defaultValue=''
+              value={self.state.contentFolder}
+              onChange={self.handleContentFolderChange}
             />
           </div>
           <div>
             BrightSign IP Address:
             <TextField
-              id={'brightSignIPAddress'}
-              defaultValue=''
+              id={'brightSignIpAddress'}
+              value={this.state.brightSignIpAddress}
+              onChange={this.handleBrightSignIpAddressChange}
             />
           </div>
           <div>
@@ -70,10 +97,9 @@ class App extends React.Component<any, object> {
           <div>
             <TextField
               id='statusArea'
-              value={'flibbet\nflubbet\nline3\nline4\nline5'}
               multiLine={true}
-              rows={2}
-              rowsMax={4}
+              rows={12}
+              rowsMax={12}
             /><br />
             <br />
           </div>
