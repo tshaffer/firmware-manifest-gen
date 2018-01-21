@@ -28,6 +28,7 @@ import * as nodeWrappers from '../nodeWrappers';
 import {
   FileInfo,
   FileToTransfer,
+  FileToTransferBs,
 } from '../interfaces';
 
 import {
@@ -72,8 +73,8 @@ class App extends React.Component<any, object> {
       recursive(contentFolder,  (err: Error, files: string[]) => {
 
         // `files` is an array of absolute file paths
-        console.log(err);
-        console.log(files);
+        // console.log(err);
+        // console.log(files);
 
         files.forEach( (fullPath) => {
           promises.push(getFileInfo(fullPath));
@@ -149,10 +150,6 @@ class App extends React.Component<any, object> {
         headers[uploadHeader.key] = uploadHeader.value;
       });
 
-      // const fileContentsBuffer: Buffer = fse.readFileSync(filePath);
-      // const fileContents: string = fileContentsBuffer.toString();
-      // debugger;
-
       // TODO get formData should be a utility function
       const formData = new FormData();
       formData.append('files', fse.createReadStream(filePath));
@@ -171,15 +168,42 @@ class App extends React.Component<any, object> {
     });
   }
 
+  // parseFilesToTransferJson() {
+  //
+  // }
+
   getFilesToTransfer(ipAddress: string, filePath: string) : Promise<FileToTransferBs[]> {
 
     return new Promise((resolve, reject) => {
 
       this.httpUploadFile(ipAddress, '/GetFilesToTransfer', filePath, []).then((response: any) => {
         return response.json();
-      }).then((filesToTransfer: any[]) => {
+      }).then((filesToTransfer: FileToTransferBs[]) => {
         resolve(filesToTransfer);
       });
+    });
+  }
+
+  uploadFileToBrightSign(sourcePath: string, destinationRelativePath: string, ipAddress: string): Promise<any> {
+
+    const endPoint = '/UploadFile';
+
+    const headers = [];
+    const header: any = {};
+    header.key = 'Destination-Filename';
+    header.value = destinationRelativePath;
+    headers.push(header);
+
+    return this.httpUploadFile(ipAddress, endPoint, sourcePath, headers);
+  }
+
+  transferFiles(siteFolder: string, filesToTransfer: FileToTransferBs[], ipAddress: string) {
+
+    filesToTransfer.forEach( (fileToTransfer) => {
+      // update status
+      const relativePathToTransfer = fileToTransfer.relativepath;
+      const fullPath = isomorphicPath.join(siteFolder, relativePathToTransfer);
+      const promise: any = this.uploadFileToBrightSign(fullPath, relativePathToTransfer, ipAddress);
     });
   }
 
@@ -187,16 +211,18 @@ class App extends React.Component<any, object> {
 
     console.log('handleBeginTranfer invoked');
 
-    // List<FileToTransfer> filesInSite = GetSiteFiles(siteFolder);
     this.getContentFiles(this.state.contentFolder).then( (contentFiles: FileToTransfer[]) => {
       console.log('File info retrieved');
 
-      // string xmlPath = GenerateFilesInSite(filesInSite);
       this.generateFilesInSite(contentFiles).then( (filePath) => {
 
-        // List<string> relativePathsToTransfer = GetFilesToTransfer(ipAddress, xmlPath);
         this.getFilesToTransfer(this.state.brightSignIpAddress, filePath).then( (filesToTransfer) => {
-          debugger;
+
+          if (!isNil(filesToTransfer) && filesToTransfer.length > 0) {
+            // display status info
+            // TransferFiles(siteFolder, relativePathsToTransfer, ipAddress);
+            this.transferFiles(this.state.contentFolder, filesToTransfer, this.state.brightSignIpAddress);
+          }
         });
       });
     });

@@ -108,13 +108,13 @@ End Function
 
 Sub FilePosted(userData as Object, e as Object)
 
-    mVar = userData.mVar
+  mVar = userData.mVar
 
 	destinationFilename = e.GetRequestHeader("Destination-Filename")
-    print "FilePosted to ";destinationFileName
+  print "FilePosted to ";destinationFileName
 	ok = MoveFile(e.GetRequestBodyFile(), destinationFilename)
 	if not ok then
-		regex = CreateObject("roRegEx","\\","i")
+		regex = CreateObject("roRegEx","/","i")
 		parts = regex.Split(destinationFilename)
 		if parts.Count() > 1 then
 			dirName$ = ""
@@ -142,7 +142,7 @@ Sub FilePosted(userData as Object, e as Object)
 	endif
 
 	e.SetResponseBodyString("RECEIVED")
-    e.SendResponse(200)
+  e.SendResponse(200)
 
 End Sub
 
