@@ -171,15 +171,14 @@ class App extends React.Component<any, object> {
     });
   }
 
-  getFilesToTransfer(ipAddress: string, filePath: string) : Promise<string[]> {
+  getFilesToTransfer(ipAddress: string, filePath: string) : Promise<FileToTransferBs[]> {
 
     return new Promise((resolve, reject) => {
 
       this.httpUploadFile(ipAddress, '/GetFilesToTransfer', filePath, []).then((response: any) => {
         return response.json();
       }).then((filesToTransfer: any[]) => {
-        debugger;
-        console.log('poo');
+        resolve(filesToTransfer);
       });
     });
   }

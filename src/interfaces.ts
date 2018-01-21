@@ -11,6 +11,13 @@ export interface FileToTransfer {
   sha1: string;
 }
 
+export interface FileToTransferBs {
+  name: string;
+  relativepath: string;
+  size: number;
+  sha1: string;
+}
+
 export interface RecentCommitData {
   commitHash: string;
   commitMessage: string;

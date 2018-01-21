@@ -147,61 +147,6 @@ Sub FilePosted(userData as Object, e as Object)
 End Sub
 
 
-Function PopulateFilesToTransfer(filesToTransfer As Object)
-
-  filesToTransferJson = []
-
-	if filesToTransfer.Count() > 0 then
-
-		for each fileToTransfer in filesToTransfer
-
-		  fileToTransferO = {}
-
-    next
-
-  endif
-
-  jsonStr$ = FormatJson(filesToXfer)
-  e.SetResponseBodyString(jsonStr$)
-  e.SendResponse(200)
-
-
-
-	xml = invalid
-
-	if filesToTransfer.Count() > 0 then
-
-        root = CreateObject("roXMLElement")
-        
-        root.SetName("filesToTransfer")
-
-		for each fileToTransfer in filesToTransfer
-
-            item = root.AddBodyElement()
-            item.SetName("file")
-
-            elem = item.AddElement("fileName")
-            elem.SetBody(fileToTransfer.fileName)
-        
-            elem = item.AddElement("filePath")
-            elem.SetBody(fileToTransfer.filePath)
-        
-            elem = item.AddElement("hashValue")
-            elem.SetBody(fileToTransfer.hashValue)
-        
-            elem = item.AddElement("fileSize")
-            elem.SetBody(stri(fileToTransfer.fileSize%))
-		next
-
-		xml = root.GenXML({ header: true })
-
-    endif
-
-	return xml
-
-End Function
-
-
 Function GetDifferentOrMissingFiles() As Object
 
   filesToTransfer = []
@@ -214,14 +159,14 @@ Function GetDifferentOrMissingFiles() As Object
   for each fileInSiteO in filesInSite.file
 
     fileInSite = {}
-    fileInSite.fileName = fileInSiteO.fileName
-    fileInSite.filePath = fileInSiteO.filePath
-    fileInSite.hashValue = fileInSiteO.hashValue
-    fileInSite.fileSize% = fileInSiteO.fileSize
+    fileInSite.name = fileInSiteO.fileName
+    fileInSite.relativePath = fileInSiteO.filePath
+    fileInSite.sha1 = fileInSiteO.hashValue
+    fileInSite.size = fileInSiteO.fileSize
 
     fileOnCardIdentical = false
 
-		file = CreateObject("roReadFile", fileInSite.filePath)
+		file = CreateObject("roReadFile", fileInSite.relativePath)
 		if type(file) = "roReadFile" then
 
 			file.SeekToEnd()
@@ -230,12 +175,12 @@ Function GetDifferentOrMissingFiles() As Object
 			if size% > 0 then
 
 				' file exists on card and is non zero size - see if it is the same file
-				if size% = fileInSite.fileSize% then
+				if size% = fileInSite.size then
 
 					' size is identical, check sha1
-					sha1 = GetSHA1(fileInSite.filePath)
+					sha1 = GetSHA1(fileInSite.relativePath)
 
-					if lcase(sha1) = lcase(fileInSite.hashValue) then
+					if lcase(sha1) = lcase(fileInSite.sha1) then
 						' sha1 is identical - files are the same
 						fileOnCardIdentical = true
 					endif
