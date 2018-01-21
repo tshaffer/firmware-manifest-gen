@@ -1,10 +1,47 @@
-import * as fs from 'fs-extra';
+import * as fse from 'fs-extra';
+
 import * as crypto from 'crypto';
 
 import * as string_decoder from 'string_decoder';
 const decoder = new string_decoder.StringDecoder('utf8');
 
+import * as FormData from 'form-data';
+
+import * as isomorphicFetch from 'isomorphic-fetch';
+
 import { FileInfo } from './interfaces';
+
+export function httpUploadFile(hostname: string,
+                               endpoint: string,
+                               filePath: string,
+                               uploadHeaders: any[] = []): Promise<any> {
+
+  return new Promise((resolve, reject) => {
+    const url = 'http://' + hostname + ':8080' + endpoint; // TODO this should be a global const
+
+    // TODO get headers should be a utility function
+    const headers: any = {};
+    uploadHeaders.forEach((uploadHeader) => {
+      headers[uploadHeader.key] = uploadHeader.value;
+    });
+
+    // TODO get formData should be a utility function
+    const formData = new FormData();
+    formData.append('files', fse.createReadStream(filePath));
+    isomorphicFetch(url, {
+      method: 'POST',
+      headers,
+      body: formData
+    }).then((response: any) => {
+// TODO this should return response.json(). However, there are currently clients of this function
+// which make device api calls that respond with empty or non JSON bodies. These calls should be
+// handled through a different function.
+      resolve(response);
+    }).catch((err: any) => {
+      reject(err);
+    });
+  });
+}
 
 export function getFileInfo(filePath: string): Promise<FileInfo> {
 
@@ -12,7 +49,7 @@ export function getFileInfo(filePath: string): Promise<FileInfo> {
 
   return new Promise((resolve) => {
     const hash = crypto.createHash('sha1');
-    const input = fs.createReadStream(filePath);
+    const input = fse.createReadStream(filePath);
     input.on('readable', () => {
       const data = input.read();
       if (data) {
