@@ -3,6 +3,7 @@ import { isNil } from 'lodash';
 import * as React from 'react';
 
 import * as path from 'path';
+import isomorphicPath from 'isomorphic-path';
 import * as fs from 'fs-extra';
 
 import * as recursive from 'recursive-readdir';
@@ -18,14 +19,7 @@ import SelectField from 'material-ui/SelectField';
 import {Table, TableBody, TableHeader, TableHeaderColumn, TableRow, TableRowColumn} from 'material-ui/Table';
 import TextField from 'material-ui/TextField';
 
-
-import {
-  addPackage,
-  setPackageVersionSelector,
-  setSelectedBranchName,
-  setSelectedTagIndex,
-  setSpecifiedCommitHash,
-} from '../store/packages';
+import * as nodeWrappers from '../nodeWrappers';
 
 import {
   FileInfo,
@@ -54,40 +48,6 @@ class App extends React.Component<any, object> {
     this.handleBeginTransfer = this.handleBeginTransfer.bind(this);
   }
 
-  getContentFiles(contentFolder: string) : any[] {
-
-    const promises: any[] = [];
-
-    recursive(contentFolder,  (err: Error, files: string[]) => {
-      // `files` is an array of absolute file paths
-      console.log(err);
-      console.log(files);
-
-      files.forEach( (fullPath) => {
-        promises.push(getFileInfo(fullPath));
-      });
-    });
-
-    Promise.all(promises).then( (filesInfo: FileInfo[]) => {
-      filesInfo.forEach( (fileInfo: FileInfo) => {
-        const filePath: string = fileInfo.filePath;
-        const fileName: string = path.basename(fileInfo.filePath);
-        const relativePath: string = fileInfo.filePath.substr(this.state.contentFolder.length + 1);
-
-        const fileToTransfer: FileToTransfer = {
-          name: fileName,
-          relativePath,
-          size: fileInfo.size,
-          sha1: fileInfo.sha1
-        };
-
-        console.log(fileToTransfer);
-      });
-    });
-
-    return [];
-  }
-
   handleContentFolderChange = (event: any) => {
     this.setState({
       contentFolder: event.target.value,
@@ -100,11 +60,91 @@ class App extends React.Component<any, object> {
     });
   }
 
+  getContentFiles(contentFolder: string) : Promise<FileToTransfer[]> {
+
+    return new Promise( (resolve, reject) => {
+      const promises: any[] = [];
+
+      recursive(contentFolder,  (err: Error, files: string[]) => {
+
+        // `files` is an array of absolute file paths
+        console.log(err);
+        console.log(files);
+
+        files.forEach( (fullPath) => {
+          promises.push(getFileInfo(fullPath));
+        });
+
+        const filesToTransfer: FileToTransfer[] = [];
+
+        Promise.all(promises).then( (filesInfo: FileInfo[]) => {
+          filesInfo.forEach( (fileInfo: FileInfo) => {
+            const filePath: string = fileInfo.filePath;
+            const fileName: string = path.basename(fileInfo.filePath);
+            const relativePath: string = fileInfo.filePath.substr(this.state.contentFolder.length + 1);
+
+            const fileToTransfer: FileToTransfer = {
+              name: fileName,
+              relativePath,
+              size: fileInfo.size,
+              sha1: fileInfo.sha1
+            };
+
+            filesToTransfer.push(fileToTransfer);
+          });
+
+          resolve(filesToTransfer);
+        });
+
+      });
+
+    });
+  }
+
+  generateFilesInSite(filesToTransfer: FileToTransfer[]) : Promise<string> {
+
+    return new Promise((resolve, reject) => {
+
+      const tmpDir = '//Users/tedshaffer/Documents/Projects/contentSynchronizer/tmp';
+      const filePath = isomorphicPath.join(tmpDir, 'listOfFiles.json');
+
+      const listOfFiles : any = {};
+      listOfFiles.file = [];
+
+      filesToTransfer.forEach( (fileToTransfer) => {
+
+        const file: any = {};
+        file.fileName = fileToTransfer.name;
+        file.filePath = fileToTransfer.relativePath;
+        file.hashValue = fileToTransfer.sha1;
+        file.fileSize = fileToTransfer.size;
+
+        listOfFiles.file.push(file);
+      });
+
+      const listOfFilesStr = JSON.stringify(listOfFiles, null, '\t');
+      nodeWrappers.writeFile(filePath, listOfFilesStr).then(() => {
+        console.log('listOfFiles.json successfully written');
+        resolve(filePath);
+      }).catch( (err: Error) => {
+        reject(err);
+      });
+    });
+  }
+
   handleBeginTransfer() {
     console.log('handleBeginTranfer invoked');
 
     // List<FileToTransfer> filesInSite = GetSiteFiles(siteFolder);
-    const filesInSite = this.getContentFiles(this.state.contentFolder);
+    this.getContentFiles(this.state.contentFolder).then( (filesToTransfer: FileToTransfer[]) => {
+      console.log('File info retrieved');
+
+      // string xmlPath = GenerateFilesInSite(filesInSite);
+      this.generateFilesInSite(filesToTransfer).then( (filePath) => {
+        // List<string> relativePathsToTransfer = GetFilesToTransfer(ipAddress, xmlPath);
+        debugger;
+      });
+    });
   }
 
   render() {
@@ -150,18 +190,7 @@ class App extends React.Component<any, object> {
 
 function mapStateToProps(state : any) {
   return {
-    bsPackages: state.bsPackages,
   };
 }
 
-const mapDispatchToProps = (dispatch: Dispatch<any>) => {
-  return bindActionCreators({
-    addPackage,
-    setPackageVersionSelector,
-    setSelectedBranchName,
-    setSelectedTagIndex,
-    setSpecifiedCommitHash,
-  }, dispatch);
-};
-
-export default connect(mapStateToProps, mapDispatchToProps)(App);
+export default connect(mapStateToProps)(App);
