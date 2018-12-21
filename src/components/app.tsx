@@ -17,7 +17,7 @@ import * as recursive from 'recursive-readdir';
 import MuiThemeProvider from 'material-ui/styles/MuiThemeProvider';
 import RaisedButton from 'material-ui/RaisedButton';
 import TextField from 'material-ui/TextField';
-import {Table, TableBody, TableHeader, TableHeaderColumn, TableRow, TableRowColumn} from 'material-ui/Table';
+import { Table, TableBody, TableHeader, TableHeaderColumn, TableRow, TableRowColumn } from 'material-ui/Table';
 
 import * as nodeWrappers from '../nodeWrappers';
 
@@ -36,7 +36,7 @@ export default class App extends React.Component<any, object> {
 
   state: any;
 
-  constructor(props: any){
+  constructor(props: any) {
     super(props);
 
     this.state = {
@@ -93,15 +93,20 @@ export default class App extends React.Component<any, object> {
     });
   }
 
+  buildRows = (): any => {
+    return null;
+  }
+
   render() {
 
     const self = this;
 
+    const fwRows = this.buildRows();
     return (
       <MuiThemeProvider>
         <div>
           <div className="container">
-            <span style={{width: '80px'}}>Input file:</span>
+            <span style={{ width: '80px' }}>Input file:</span>
             <TextField
               id={'inputFile'}
               value={self.state.inputFile}
@@ -112,10 +117,10 @@ export default class App extends React.Component<any, object> {
                 marginRight: '10px',
               }}
             />
-            <RaisedButton label='Browse' onClick={self.handleBrowseForInputFile}/>
+            <RaisedButton label='Browse' onClick={self.handleBrowseForInputFile} />
           </div>
           <div className="container">
-            <span style={{width: '80px'}}>Output file:</span>
+            <span style={{ width: '80px' }}>Output file:</span>
             <TextField
               id={'outputFile'}
               value={self.state.outputFile}
@@ -126,8 +131,27 @@ export default class App extends React.Component<any, object> {
                 marginRight: '10px',
               }}
             />
-            <RaisedButton label='Browse' onClick={self.handleBrowseForOutputFile}/>
+            <RaisedButton label='Browse' onClick={self.handleBrowseForOutputFile} />
           </div>
+          <Table>
+            <TableHeader
+              displaySelectAll={false}
+              adjustForCheckbox={false}
+              enableSelectAll={false}
+            >
+              <TableRow>
+                <TableHeaderColumn>Family</TableHeaderColumn>
+                <TableHeaderColumn>Type</TableHeaderColumn>
+                <TableHeaderColumn>Version</TableHeaderColumn>
+              </TableRow>
+
+            </TableHeader>
+            <TableBody
+              displayRowCheckbox={false}
+            >
+              {fwRows}
+            </TableBody>
+          </Table>
         </div>
       </MuiThemeProvider>
     );

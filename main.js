@@ -1,4 +1,4 @@
-console.log("Bacon Comp Configurator");
+console.log("Firmware Manifest Generator");
 const electron = require('electron');
 
 // Module to control application life.
