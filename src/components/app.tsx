@@ -263,8 +263,8 @@ export default class App extends React.Component<any, object> {
     return (
       <MuiThemeProvider>
         <div>
-        <div>
-            Input file:
+          <div className="container">
+            <span style={{width: '80px'}}>Input file:</span>
             <TextField
               id={'inputFile'}
               value={self.state.inputFile}
@@ -277,8 +277,8 @@ export default class App extends React.Component<any, object> {
             />
             <RaisedButton label='Browse' onClick={self.handleBrowseForInputFile}/>
           </div>
-          <div>
-            Output file:
+          <div className="container">
+            <span style={{width: '80px'}}>Output file:</span>
             <TextField
               id={'outputFile'}
               value={self.state.outputFile}

@@ -6,3 +6,8 @@ body {
 .autorunText {
     color: blue;
 }
+
+.container span {
+  display: inline-block;
+}
+
