@@ -36,6 +36,9 @@ export default class App extends React.Component<any, object> {
     super(props);
 
     this.state = {
+      manifestFolder: '/Users/tedshaffer/Documents/BrightAuthor/CloudData',
+      inputFile: '',
+      outputFile: '',
       contentFolder: '/Users/tedshaffer/Desktop/aa',
       brightSignIpAddress: '192.168.0.104',
       status: '',
@@ -57,6 +60,44 @@ export default class App extends React.Component<any, object> {
     let xferStatus: string = this.state.status;
     xferStatus += '\n' + statusToAppend;
     this.setStatus(xferStatus);
+  }
+
+  handleBrowseForInputFile = () => {
+    const dialog: any = remote.dialog;
+    dialog.showOpenDialog({
+      defaultPath: this.state.manifestFolder,
+      properties: [
+        'openFile',
+      ]
+    }, (selectedPaths: string[]) => {
+      if (!isNil(selectedPaths) && selectedPaths.length === 1) {
+        this.setState({
+          manifestFolder: path.dirname(selectedPaths[0]),
+          inputFile: selectedPaths[0],
+        });
+      }
+    });
+  }
+
+  handleBrowseForOutputFile = () => {
+    const dialog: any = remote.dialog;
+    dialog.showSaveDialog({
+      defaultPath: this.state.manifestFolder,
+    }, (fileName: string) => {
+      console.log(fileName);
+    });
+  }
+
+  handleInputFileChange = (event: any) => {
+    this.setState({
+      inputFile: event.target.value,
+    });
+  }
+
+  handleOutputFileChange = (event: any) => {
+    this.setState({
+      outputFile: event.target.value,
+    });
   }
 
   handleBrowse = () => {
@@ -222,30 +263,33 @@ export default class App extends React.Component<any, object> {
     return (
       <MuiThemeProvider>
         <div>
-          <div>
-            Content folder:
+        <div>
+            Input file:
             <TextField
-              id={'contentFolder'}
-              value={self.state.contentFolder}
-              onChange={self.handleContentFolderChange}
+              id={'inputFile'}
+              value={self.state.inputFile}
+              onChange={self.handleInputFileChange}
               style={{
-                width: '500px',
+                width: '800px',
                 marginLeft: '10px',
                 marginRight: '10px',
               }}
             />
-            <RaisedButton label='Browse' onClick={self.handleBrowse}/>
+            <RaisedButton label='Browse' onClick={self.handleBrowseForInputFile}/>
           </div>
           <div>
-            BrightSign IP Address:
+            Output file:
             <TextField
-              id={'brightSignIpAddress'}
-              value={this.state.brightSignIpAddress}
-              onChange={this.handleBrightSignIpAddressChange}
+              id={'outputFile'}
+              value={self.state.outputFile}
+              onChange={self.handleOutputFileChange}
               style={{
+                width: '800px',
                 marginLeft: '10px',
+                marginRight: '10px',
               }}
             />
+            <RaisedButton label='Browse' onClick={self.handleBrowseForOutputFile}/>
           </div>
           <div>
             <RaisedButton label='Begin Transfer' onClick={self.handleBeginTransfer}/>
@@ -258,7 +302,7 @@ export default class App extends React.Component<any, object> {
               rowsMax={24}
               value={this.state.status}
               style={{
-                width: '800px',
+                width: '700px',
               }}
             /><br />
             <br />

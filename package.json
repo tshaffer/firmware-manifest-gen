@@ -1,7 +1,7 @@
 {
-  "name": "content-synchronizer",
+  "name": "firmware-manifest-gen",
   "version": "0.0.1",
-  "description": "synchronize content between pc and brightsign",
+  "description": "generates firmware manifest files used by BrightAuthor / Bacon",
   "main": "main.js",
   "scripts": {
     "build": "node node_modules/webpack/bin/webpack --config ./webpack.config.js --watch",
