@@ -54,6 +54,7 @@ export default class App extends React.Component<any, object> {
 
     this.handleBrowseForInputFile = this.handleBrowseForInputFile.bind(this);
     this.handleBrowseForOutputFile = this.handleBrowseForOutputFile.bind(this);
+    this.handleVersionChange = this.handleVersionChange.bind(this);
   }
 
   setStatus(status: string) {
@@ -105,7 +106,17 @@ export default class App extends React.Component<any, object> {
     });
   }
 
+  handleVersionChange = (row: any, event: any, value: any) => {
+    const fwFiles: FWFile[] = this.state.fwFiles;
+    const fwFile: FWFile = fwFiles[row];
+    fwFile.version = value;
+    this.setState({fwFiles});
+  }
+
   buildRow = (fwFile: FWFile, index: number) => {
+
+    const version: string = this.state.fwFiles[index].version;
+
     return (
       <TableRow key={index}>
         <TableRowColumn>
@@ -115,7 +126,12 @@ export default class App extends React.Component<any, object> {
           {fwFile.type}
         </TableRowColumn>
         <TableRowColumn>
-          {fwFile.version}
+          <TextField
+            id={index.toString()}
+            key={index}
+            value={version}
+            onChange={this.handleVersionChange.bind(this, index)}
+          />
         </TableRowColumn>
       </TableRow>
     );
@@ -132,6 +148,8 @@ export default class App extends React.Component<any, object> {
 
   render() {
 
+    console.log(this.state.fwFiles);
+    
     const self = this;
 
     const fwRows = this.buildRows();

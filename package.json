@@ -4,7 +4,8 @@
   "description": "generates firmware manifest files used by BrightAuthor / Bacon",
   "main": "main.js",
   "scripts": {
-    "build": "node node_modules/webpack/bin/webpack --config ./webpack.config.js --watch",
+    "build": "node node_modules/webpack/bin/webpack --config ./webpack.config.js",
+    "buildW": "node node_modules/webpack/bin/webpack --config ./webpack.config.js --watch",
     "run": "electron .",
     "tsLint": "tslint -c tslint.json 'lib/**/*.ts' 'tests/**/*.ts'"
   },
