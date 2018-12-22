@@ -7,6 +7,8 @@ import { isNil } from 'lodash';
 import * as React from 'react';
 
 import * as path from 'path';
+import * as fs from 'fs';
+
 import isomorphicPath from 'isomorphic-path';
 
 import * as recursive from 'recursive-readdir';
@@ -27,10 +29,14 @@ import {
   FileToTransferBs,
 } from '../interfaces';
 
-import {
-  getFileInfo,
-  httpUploadFile,
-} from '../utilities';
+interface FWFile {
+  family: string;
+  fileLength: string;
+  sha1: string;
+  type: string;
+  version: number;
+  versionNumber: string;
+}
 
 export default class App extends React.Component<any, object> {
 
@@ -43,6 +49,7 @@ export default class App extends React.Component<any, object> {
       manifestFolder: '/Users/tedshaffer/Documents/BrightAuthor/CloudData',
       inputFile: '',
       outputFile: '',
+      fwFiles: [],
     };
 
     this.handleBrowseForInputFile = this.handleBrowseForInputFile.bind(this);
@@ -64,10 +71,15 @@ export default class App extends React.Component<any, object> {
       ]
     }, (selectedPaths: string[]) => {
       if (!isNil(selectedPaths) && selectedPaths.length === 1) {
+        const inputFile: string = selectedPaths[0];
         this.setState({
           manifestFolder: path.dirname(selectedPaths[0]),
-          inputFile: selectedPaths[0],
+          inputFile,
         });
+
+        const contents = fs.readFileSync(inputFile);
+        const fwFiles = JSON.parse(contents.toString());
+        this.setState({fwFiles: fwFiles.firmwareFile});
       }
     });
   }
@@ -93,8 +105,29 @@ export default class App extends React.Component<any, object> {
     });
   }
 
+  buildRow = (fwFile: FWFile, index: number) => {
+    return (
+      <TableRow key={index}>
+        <TableRowColumn>
+          {fwFile.family}
+        </TableRowColumn>
+        <TableRowColumn>
+          {fwFile.type}
+        </TableRowColumn>
+        <TableRowColumn>
+          {fwFile.version}
+        </TableRowColumn>
+      </TableRow>
+    );
+  }
+
   buildRows = (): any => {
-    return null;
+
+    const fwFileRows: any[] = this.state.fwFiles.map( (fwFile: FWFile, index: number) => {
+      return this.buildRow(fwFile, index);
+    })
+
+    return fwFileRows;
   }
 
   render() {
