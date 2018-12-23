@@ -9,10 +9,6 @@ import * as React from 'react';
 import * as path from 'path';
 import * as fs from 'fs';
 
-import isomorphicPath from 'isomorphic-path';
-
-import * as recursive from 'recursive-readdir';
-
 // https://stackoverflow.com/questions/15877362/declare-and-initialize-a-dictionary-in-typescript
 
 // https://v0.material-ui.com/#/
@@ -23,13 +19,13 @@ import RaisedButton from 'material-ui/RaisedButton';
 import TextField from 'material-ui/TextField';
 import { Table, TableBody, TableHeader, TableHeaderColumn, TableRow, TableRowColumn } from 'material-ui/Table';
 
-import * as nodeWrappers from '../nodeWrappers';
-
 import {
   FileInfo,
-  FileToTransfer,
-  FileToTransferBs,
 } from '../interfaces';
+
+import {
+  getFileInfo
+} from '../utilities';
 
 interface FWFile {
   family: string;
@@ -68,7 +64,45 @@ export default class App extends React.Component<any, object> {
     this.handleGenerateManifest = this.handleGenerateManifest.bind(this);
   }
 
+  getFWFiles(): Promise<void> {
+
+    let numberOfFWFiles = this.fwFilesToLocate.length;
+
+    const getNextFWFile = (fileIndex: number): Promise<void> => {
+
+      return new Promise((resolve, reject) => {
+        const dialog: any = remote.dialog;
+        dialog.showOpenDialog({
+          defaultPath: this.state.manifestFolder,
+          properties: [
+            'openFile',
+          ]
+        }, (selectedPaths: string[]) => {
+          if (!isNil(selectedPaths) && selectedPaths.length === 1) {
+            const inputFile: string = selectedPaths[0];
+            console.log(inputFile);
+            fileIndex++;
+            if (fileIndex >= numberOfFWFiles) {
+              // return Promise.resolve();
+              return resolve();
+            }
+            else {
+              return getNextFWFile(fileIndex);
+            }
+          }
+        });
+      });
+    }
+
+    return getNextFWFile(0).then( () => {
+      // return;
+      return Promise.resolve();
+    });
+
+  }
+
   handleGenerateManifest = () => {
+
     let manifestDirty = false;
 
     const self = this;
@@ -97,16 +131,27 @@ export default class App extends React.Component<any, object> {
 
     console.log(this.fwFilesToLocate);
 
+    if (this.fwFilesToLocate.length > 0) {
+      this.getFWFiles().then( () => {
+        console.log('all files found - update and write');
+      })
+    }
+
     const manifest: any = {
       firmwareFile: this.state.fwFiles
     };
 
-    const fwFiles = JSON.stringify(manifest, null, 2);
-    const manifestPath = path.join(this.state.manifestFolder, 'FirmwareManifestOut.json');
-    fs.writeFile(manifestPath, fwFiles, 'utf8', function(err) {
-      if (err) throw err;
-      console.log('write complete');
-    });
+    // const fwFiles = JSON.stringify(manifest, null, 2);
+    // const manifestPath = path.join(this.state.manifestFolder, 'FirmwareManifestOut.json');
+
+    // const fwPath = '/Users/tedshaffer/Documents/BrightAuthor/CloudData/FirmwareGen2-12-17-2018/pagani-8.0.6.6-update.bsfw';
+    // getFileInfo(fwPath).then( (fileInfo: FileInfo) => {
+    //   console.log(fileInfo);
+    //   fs.writeFile(manifestPath, fwFiles, 'utf8', function(err) {
+    //     if (err) throw err;
+    //     console.log('write complete');
+    //   });
+    // })
   }
 
   handleBrowseForInputFile = () => {
