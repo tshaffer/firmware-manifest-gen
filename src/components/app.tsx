@@ -49,6 +49,8 @@ export default class App extends React.Component<any, object> {
   state: any;
   baseFWFiles: FWFile[] = [];
   fwFilesByFamilyVersion: FWFileLUT = {};
+  fwFilesToLocate: string[] = [];
+
 
   constructor(props: any) {
     super(props);
@@ -67,12 +69,43 @@ export default class App extends React.Component<any, object> {
   }
 
   handleGenerateManifest = () => {
+    let manifestDirty = false;
+
     const self = this;
-    // compare baseline against current - deal with differences
+
+    this.fwFilesToLocate = [];
+
+    // compare baseline against current
     this.state.fwFiles.forEach( (fwFile: FWFile, index: number) => {
+      
+      // version has changed from baseline
       if (fwFile.version !== self.baseFWFiles[index].version) {
+        
         console.log('entry at: ', index, ' changed');
+        manifestDirty = true;
+
+        // does family / version exist elsewhere?
+        const fwFileName = fwFile.family.toLowerCase() + '-' + fwFile.version + '-update.bsfw';
+        if (!this.fwFilesByFamilyVersion.hasOwnProperty(fwFileName)) {
+          // no, add it to the list of fw files that must be added to the manifest
+          if (this.fwFilesToLocate.indexOf(fwFileName) < 0) {
+            this.fwFilesToLocate.push(fwFileName);
+          }
+        }
       }
+    });
+
+    console.log(this.fwFilesToLocate);
+
+    const manifest: any = {
+      firmwareFile: this.state.fwFiles
+    };
+
+    const fwFiles = JSON.stringify(manifest, null, 2);
+    const manifestPath = path.join(this.state.manifestFolder, 'FirmwareManifestOut.json');
+    fs.writeFile(manifestPath, fwFiles, 'utf8', function(err) {
+      if (err) throw err;
+      console.log('write complete');
     });
   }
 
