@@ -2,7 +2,7 @@ import {
   remote,
 } from 'electron';
 
-import { isNil } from 'lodash';
+import { cloneDeep, isNil } from 'lodash';
 
 import * as React from 'react';
 
@@ -12,6 +12,8 @@ import * as fs from 'fs';
 import isomorphicPath from 'isomorphic-path';
 
 import * as recursive from 'recursive-readdir';
+
+// https://stackoverflow.com/questions/15877362/declare-and-initialize-a-dictionary-in-typescript
 
 // https://v0.material-ui.com/#/
 // https://v0.material-ui.com/#/components/dialog
@@ -38,9 +40,15 @@ interface FWFile {
   versionNumber: string;
 }
 
+interface FWFileLUT {
+  [key: string]: FWFile
+};
+
 export default class App extends React.Component<any, object> {
 
   state: any;
+  baseFWFiles: FWFile[] = [];
+  fwFilesByFamilyVersion: FWFileLUT = {};
 
   constructor(props: any) {
     super(props);
@@ -55,11 +63,16 @@ export default class App extends React.Component<any, object> {
     this.handleBrowseForInputFile = this.handleBrowseForInputFile.bind(this);
     this.handleBrowseForOutputFile = this.handleBrowseForOutputFile.bind(this);
     this.handleVersionChange = this.handleVersionChange.bind(this);
+    this.handleGenerateManifest = this.handleGenerateManifest.bind(this);
   }
 
-  setStatus(status: string) {
-    this.setState({
-      status,
+  handleGenerateManifest = () => {
+    const self = this;
+    // compare baseline against current - deal with differences
+    this.state.fwFiles.forEach( (fwFile: FWFile, index: number) => {
+      if (fwFile.version !== self.baseFWFiles[index].version) {
+        console.log('entry at: ', index, ' changed');
+      }
     });
   }
 
@@ -81,6 +94,13 @@ export default class App extends React.Component<any, object> {
         const contents = fs.readFileSync(inputFile);
         const fwFiles = JSON.parse(contents.toString());
         this.setState({fwFiles: fwFiles.firmwareFile});
+        this.baseFWFiles = cloneDeep(fwFiles).firmwareFile;
+
+        // purpose of this data structure is to know if a fw file already exists for a given family and version.
+        // if yes, a new fw file does not need to be interrogated. the existing information can be reused.
+        this.baseFWFiles.forEach( (fwFile) => {
+          this.fwFilesByFamilyVersion[fwFile.family + fwFile.version] = fwFile;
+        })
       }
     });
   }
@@ -184,6 +204,8 @@ export default class App extends React.Component<any, object> {
             />
             <RaisedButton label='Browse' onClick={self.handleBrowseForOutputFile} />
           </div>
+          <RaisedButton label='Generate Manifest' onClick={self.handleGenerateManifest} />
+
           <Table>
             <TableHeader
               displaySelectAll={false}
