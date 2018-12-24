@@ -45,8 +45,7 @@ export default class App extends React.Component<any, object> {
   state: any;
   baseFWFiles: FWFile[] = [];
   fwFilesByFamilyVersion: FWFileLUT = {};
-  fwFilesToLocate: string[] = [];
-
+  fwFileIndicesToLocate: number[] = [];
 
   constructor(props: any) {
     super(props);
@@ -62,18 +61,28 @@ export default class App extends React.Component<any, object> {
     this.handleBrowseForOutputFile = this.handleBrowseForOutputFile.bind(this);
     this.handleVersionChange = this.handleVersionChange.bind(this);
     this.handleGenerateManifest = this.handleGenerateManifest.bind(this);
+
+    this.getFWFiles = this.getFWFiles.bind(this);
   }
 
   getFWFiles(): Promise<void> {
 
-    let numberOfFWFiles = this.fwFilesToLocate.length;
+    const self = this;
 
-    const getNextFWFile = (fileIndex: number): Promise<void> => {
+    let numberOfFWFiles = this.fwFileIndicesToLocate.length;
+
+    const getNextFWFile = (self: any, fileIndex: number): Promise<void> => {
 
       return new Promise((resolve, reject) => {
+
+        const fwFileIndex = self.fwFileIndicesToLocate[fileIndex];
+        const fwFileToMatch = self.state.fwFiles[fwFileIndex];
+        const fwFileName = fwFileToMatch.family.toLowerCase() + '-' + fwFileToMatch.version + '-update.bsfw';
+        
         const dialog: any = remote.dialog;
         dialog.showOpenDialog({
-          defaultPath: this.state.manifestFolder,
+          title: 'Locate file ' + fwFileName,
+          defaultPath: self.state.manifestFolder,
           properties: [
             'openFile',
           ]
@@ -83,19 +92,17 @@ export default class App extends React.Component<any, object> {
             console.log(inputFile);
             fileIndex++;
             if (fileIndex >= numberOfFWFiles) {
-              // return Promise.resolve();
               return resolve();
             }
             else {
-              return getNextFWFile(fileIndex);
+              return getNextFWFile(self, fileIndex);
             }
           }
         });
       });
     }
 
-    return getNextFWFile(0).then( () => {
-      // return;
+    return getNextFWFile(self, 0).then( () => {
       return Promise.resolve();
     });
 
@@ -107,7 +114,7 @@ export default class App extends React.Component<any, object> {
 
     const self = this;
 
-    this.fwFilesToLocate = [];
+    this.fwFileIndicesToLocate = [];
 
     // compare baseline against current
     this.state.fwFiles.forEach( (fwFile: FWFile, index: number) => {
@@ -122,16 +129,14 @@ export default class App extends React.Component<any, object> {
         const fwFileName = fwFile.family.toLowerCase() + '-' + fwFile.version + '-update.bsfw';
         if (!this.fwFilesByFamilyVersion.hasOwnProperty(fwFileName)) {
           // no, add it to the list of fw files that must be added to the manifest
-          if (this.fwFilesToLocate.indexOf(fwFileName) < 0) {
-            this.fwFilesToLocate.push(fwFileName);
+          if (this.fwFileIndicesToLocate.indexOf(index) < 0) {
+            this.fwFileIndicesToLocate.push(index);
           }
         }
       }
     });
 
-    console.log(this.fwFilesToLocate);
-
-    if (this.fwFilesToLocate.length > 0) {
+    if (this.fwFileIndicesToLocate.length > 0) {
       this.getFWFiles().then( () => {
         console.log('all files found - update and write');
       })
@@ -245,8 +250,6 @@ export default class App extends React.Component<any, object> {
   }
 
   render() {
-
-    console.log(this.state.fwFiles);
     
     const self = this;
 
