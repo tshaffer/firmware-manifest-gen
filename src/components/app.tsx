@@ -83,6 +83,7 @@ export default class App extends React.Component<any, object> {
         dialog.showOpenDialog({
           title: 'Locate file ' + fwFileName,
           defaultPath: self.state.manifestFolder,
+          message: 'Locate file ' + fwFileName,
           properties: [
             'openFile',
           ]
