@@ -133,8 +133,6 @@ export default class App extends React.Component<any, object> {
 
   handleGenerateManifest = () => {
 
-    let manifestDirty = false;
-
     const self = this;
 
     this.fwFileIndicesToLocate = [];
@@ -145,9 +143,6 @@ export default class App extends React.Component<any, object> {
       // version has changed from baseline
       if (fwFile.version !== self.baseFWFiles[index].version) {
         
-        console.log('entry at: ', index, ' changed');
-        manifestDirty = true;
-
         // does family / version exist elsewhere?
         const fwFileName = fwFile.family.toLowerCase() + '-' + fwFile.version + '-update.bsfw';
         if (!this.fwFilesByFamilyVersion.hasOwnProperty(fwFileName)) {
@@ -175,20 +170,10 @@ export default class App extends React.Component<any, object> {
     };
 
     const fwFiles = JSON.stringify(manifest, null, 2);
-    const manifestPath = path.join(this.state.manifestFolder, 'FirmwareManifestOut.json');
-    fs.writeFile(manifestPath, fwFiles, 'utf8', function(err) {
+    fs.writeFile(this.state.outputFile, fwFiles, 'utf8', function(err) {
       if (err) throw err;
       console.log('write complete');
     });
-
-    // const fwPath = '/Users/tedshaffer/Documents/BrightAuthor/CloudData/FirmwareGen2-12-17-2018/pagani-8.0.6.6-update.bsfw';
-    // getFileInfo(fwPath).then( (fileInfo: FileInfo) => {
-    //   console.log(fileInfo);
-    //   fs.writeFile(manifestPath, fwFiles, 'utf8', function(err) {
-    //     if (err) throw err;
-    //     console.log('write complete');
-    //   });
-    // })
   }
 
   handleBrowseForInputFile = () => {
@@ -224,8 +209,10 @@ export default class App extends React.Component<any, object> {
     const dialog: any = remote.dialog;
     dialog.showSaveDialog({
       defaultPath: this.state.manifestFolder,
-    }, (fileName: string) => {
-      console.log(fileName);
+    }, (outputFile: string) => {
+      this.setState({
+        outputFile,
+      });
     });
   }
 
