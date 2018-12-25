@@ -16,8 +16,10 @@ import * as fs from 'fs';
 // https://material-ui.com/api/list-item/
 import MuiThemeProvider from 'material-ui/styles/MuiThemeProvider';
 import RaisedButton from 'material-ui/RaisedButton';
+import FlatButton from 'material-ui/FlatButton';
 import TextField from 'material-ui/TextField';
 import { Table, TableBody, TableHeader, TableHeaderColumn, TableRow, TableRowColumn } from 'material-ui/Table';
+import Dialog from 'material-ui/Dialog';
 
 import {
   FileInfo,
@@ -57,15 +59,21 @@ export default class App extends React.Component<any, object> {
       inputFile: '',
       outputFile: '',
       fwFiles: [],
+      writeCompleteDlgOpen: false,
     };
 
     this.handleBrowseForInputFile = this.handleBrowseForInputFile.bind(this);
     this.handleBrowseForOutputFile = this.handleBrowseForOutputFile.bind(this);
     this.handleVersionChange = this.handleVersionChange.bind(this);
     this.handleGenerateManifest = this.handleGenerateManifest.bind(this);
+    this.handleCloseWriteCompleteDlg = this.handleCloseWriteCompleteDlg.bind(this);
 
     this.getFWFiles = this.getFWFiles.bind(this);
   }
+
+  handleCloseWriteCompleteDlg = () => {
+    this.setState({writeCompleteDlgOpen: false});
+  };
 
   getFWFiles(): Promise<void> {
 
@@ -165,6 +173,9 @@ export default class App extends React.Component<any, object> {
   }
 
   writeFile() {
+
+    const self = this;
+
     const manifest: any = {
       firmwareFile: this.state.fwFiles
     };
@@ -173,6 +184,7 @@ export default class App extends React.Component<any, object> {
     fs.writeFile(this.state.outputFile, fwFiles, 'utf8', function(err) {
       if (err) throw err;
       console.log('write complete');
+      self.setState({writeCompleteDlgOpen: true});
     });
   }
 
@@ -272,6 +284,14 @@ export default class App extends React.Component<any, object> {
     
     const self = this;
 
+    const actions = [
+      <FlatButton
+        label="OK"
+        primary={true}
+        onClick={this.handleCloseWriteCompleteDlg}
+      />,
+    ];
+
     const fwRows = this.buildRows();
     return (
       <MuiThemeProvider>
@@ -325,6 +345,18 @@ export default class App extends React.Component<any, object> {
               {fwRows}
             </TableBody>
           </Table>
+        
+        <div>
+          <Dialog
+            title="Firmware manifest file saved"
+            actions={actions}
+            modal={false}
+            open={this.state.writeCompleteDlgOpen}
+            onRequestClose={this.handleCloseWriteCompleteDlg}
+          >
+          Firmware manifest file saved
+          </Dialog>
+      </div>
         </div>
       </MuiThemeProvider>
     );
