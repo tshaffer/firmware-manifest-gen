@@ -26,14 +26,16 @@ import {
 import {
   getFileInfo
 } from '../utilities';
+import { writeFile } from 'fs-extra';
 
 interface FWFile {
   family: string;
-  fileLength: string;
-  sha1: string;
   type: string;
-  version: number;
+  version: string;
   versionNumber: string;
+  link: string;
+  sha1: string;
+  fileLength: string;
 }
 
 interface FWFileLUT {
@@ -76,7 +78,7 @@ export default class App extends React.Component<any, object> {
       return new Promise((resolve, reject) => {
 
         const fwFileIndex = self.fwFileIndicesToLocate[fileIndex];
-        const fwFileToMatch = self.state.fwFiles[fwFileIndex];
+        const fwFileToMatch: FWFile = self.state.fwFiles[fwFileIndex];
         const fwFileName = fwFileToMatch.family.toLowerCase() + '-' + fwFileToMatch.version + '-update.bsfw';
         
         const dialog: any = remote.dialog;
@@ -89,15 +91,23 @@ export default class App extends React.Component<any, object> {
           ]
         }, (selectedPaths: string[]) => {
           if (!isNil(selectedPaths) && selectedPaths.length === 1) {
-            const inputFile: string = selectedPaths[0];
-            console.log(inputFile);
-            fileIndex++;
-            if (fileIndex >= numberOfFWFiles) {
-              return resolve();
-            }
-            else {
-              return getNextFWFile(self, fileIndex);
-            }
+            const filePath: string = selectedPaths[0];
+            getFileInfo(filePath).then( (fileInfo: FileInfo) => {
+
+              fwFileToMatch.versionNumber = this.getVersionNumber(fwFileToMatch.version);
+              fwFileToMatch.link = 'http://bsnm.s3.amazonaws.com/public/' + fwFileName;
+              fwFileToMatch.fileLength = fileInfo.size.toString();;
+              fwFileToMatch.sha1 = fileInfo.sha1;
+
+              fileIndex++;
+              if (fileIndex >= numberOfFWFiles) {
+                return resolve();
+              }
+              else {
+                return getNextFWFile(self, fileIndex);
+              }
+
+            });
           }
         });
       });
@@ -107,6 +117,18 @@ export default class App extends React.Component<any, object> {
       return Promise.resolve();
     });
 
+  }
+
+  getVersionNumber(fwVersion: string): string {
+
+    const splitFWVersion: string[] = fwVersion.split('.');
+
+    const versionNumber: number = 
+      Number(splitFWVersion[0]) * 65536 + 
+      Number(splitFWVersion[1]) * 256 + 
+      Number(splitFWVersion[2]);
+
+    return versionNumber.toString();
   }
 
   handleGenerateManifest = () => {
@@ -139,16 +161,25 @@ export default class App extends React.Component<any, object> {
 
     if (this.fwFileIndicesToLocate.length > 0) {
       this.getFWFiles().then( () => {
-        console.log('all files found - update and write');
+        this.writeFile();
       })
     }
+    else {
+      this.writeFile();
+    }
+  }
 
+  writeFile() {
     const manifest: any = {
       firmwareFile: this.state.fwFiles
     };
 
-    // const fwFiles = JSON.stringify(manifest, null, 2);
-    // const manifestPath = path.join(this.state.manifestFolder, 'FirmwareManifestOut.json');
+    const fwFiles = JSON.stringify(manifest, null, 2);
+    const manifestPath = path.join(this.state.manifestFolder, 'FirmwareManifestOut.json');
+    fs.writeFile(manifestPath, fwFiles, 'utf8', function(err) {
+      if (err) throw err;
+      console.log('write complete');
+    });
 
     // const fwPath = '/Users/tedshaffer/Documents/BrightAuthor/CloudData/FirmwareGen2-12-17-2018/pagani-8.0.6.6-update.bsfw';
     // getFileInfo(fwPath).then( (fileInfo: FileInfo) => {
