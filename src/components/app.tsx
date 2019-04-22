@@ -28,7 +28,6 @@ import {
 import {
   getFileInfo
 } from '../utilities';
-import { writeFile } from 'fs-extra';
 
 interface FWFile {
   family: string;
@@ -44,9 +43,16 @@ interface FWFileLUT {
   [key: string]: FWFile
 };
 
+interface AppState {
+  manifestFolder: string;
+  inputFile: string;
+  outputFile: string;
+  fwFiles: FWFile[];
+  writeCompleteDlgOpen: boolean;
+}
 export default class App extends React.Component<any, object> {
 
-  state: any;
+  state: AppState;
   baseFWFiles: FWFile[] = [];
   fwFilesByFamilyVersion: FWFileLUT = {};
   fwFileIndicesToLocate: number[] = [];
@@ -72,68 +78,60 @@ export default class App extends React.Component<any, object> {
   }
 
   handleCloseWriteCompleteDlg = () => {
-    this.setState({writeCompleteDlgOpen: false});
+    this.setState({ writeCompleteDlgOpen: false });
   };
 
   getFWFiles(): Promise<void> {
 
-    const self = this;
-
-    let numberOfFWFiles = this.fwFileIndicesToLocate.length;
+    const numberOfFWFiles = this.fwFileIndicesToLocate.length;
 
     const getNextFWFile = (self: any, fileIndex: number): Promise<void> => {
 
-      return new Promise((resolve, reject) => {
+      if (fileIndex >= numberOfFWFiles) {
+        return Promise.resolve();
+      }
 
-        const fwFileIndex = self.fwFileIndicesToLocate[fileIndex];
-        const fwFileToMatch: FWFile = self.state.fwFiles[fwFileIndex];
-        const fwFileName = fwFileToMatch.family.toLowerCase() + '-' + fwFileToMatch.version + '-update.bsfw';
-        
-        const dialog: any = remote.dialog;
-        dialog.showOpenDialog({
-          title: 'Locate file ' + fwFileName,
-          defaultPath: self.state.manifestFolder,
-          message: 'Locate file ' + fwFileName,
-          properties: [
-            'openFile',
-          ]
-        }, (selectedPaths: string[]) => {
-          if (!isNil(selectedPaths) && selectedPaths.length === 1) {
-            const filePath: string = selectedPaths[0];
-            getFileInfo(filePath).then( (fileInfo: FileInfo) => {
+      const fwFileIndex = self.fwFileIndicesToLocate[fileIndex];
+      const fwFileToMatch: FWFile = self.state.fwFiles[fwFileIndex];
+      const fwFileName = fwFileToMatch.family.toLowerCase() + '-' + fwFileToMatch.version + '-update.bsfw';
 
-              fwFileToMatch.versionNumber = this.getVersionNumber(fwFileToMatch.version);
-              fwFileToMatch.link = 'http://bsnm.s3.amazonaws.com/public/' + fwFileName;
-              fwFileToMatch.fileLength = fileInfo.size.toString();;
-              fwFileToMatch.sha1 = fileInfo.sha1;
+      const dialog: any = remote.dialog;
+      dialog.showOpenDialog({
+        title: 'Locate file ' + fwFileName,
+        defaultPath: self.state.manifestFolder,
+        message: 'Locate file ' + fwFileName,
+        properties: [
+          'openFile',
+        ]
+      }, (selectedPaths: string[]) => {
+        if (!isNil(selectedPaths) && selectedPaths.length === 1) {
+          const filePath: string = selectedPaths[0];
+          getFileInfo(filePath).then((fileInfo: FileInfo) => {
 
-              fileIndex++;
-              if (fileIndex >= numberOfFWFiles) {
-                return resolve();
-              }
-              else {
-                return getNextFWFile(self, fileIndex);
-              }
+            fwFileToMatch.versionNumber = this.getVersionNumber(fwFileToMatch.version);
+            fwFileToMatch.link = 'http://bsnm.s3.amazonaws.com/public/' + fwFileName;
+            fwFileToMatch.fileLength = fileInfo.size.toString();;
+            fwFileToMatch.sha1 = fileInfo.sha1;
 
-            });
-          }
-        });
+            return getNextFWFile(self, fileIndex + 1);
+          });
+        }
+        else {
+          debugger;
+        }
       });
-    }
+    };
 
-    return getNextFWFile(self, 0).then( () => {
-      return Promise.resolve();
-    });
-
+    return getNextFWFile(this, 0);
   }
 
   getVersionNumber(fwVersion: string): string {
 
     const splitFWVersion: string[] = fwVersion.split('.');
 
-    const versionNumber: number = 
-      Number(splitFWVersion[0]) * 65536 + 
-      Number(splitFWVersion[1]) * 256 + 
+    const versionNumber: number =
+      Number(splitFWVersion[0]) * 65536 +
+      Number(splitFWVersion[1]) * 256 +
       Number(splitFWVersion[2]);
 
     return versionNumber.toString();
@@ -146,11 +144,11 @@ export default class App extends React.Component<any, object> {
     this.fwFileIndicesToLocate = [];
 
     // compare baseline against current
-    this.state.fwFiles.forEach( (fwFile: FWFile, index: number) => {
-      
+    this.state.fwFiles.forEach((fwFile: FWFile, index: number) => {
+
       // version has changed from baseline
       if (fwFile.version !== self.baseFWFiles[index].version) {
-        
+
         // does family / version exist elsewhere?
         const fwFileName = fwFile.family.toLowerCase() + '-' + fwFile.version + '-update.bsfw';
         if (!this.fwFilesByFamilyVersion.hasOwnProperty(fwFileName)) {
@@ -163,7 +161,7 @@ export default class App extends React.Component<any, object> {
     });
 
     if (this.fwFileIndicesToLocate.length > 0) {
-      this.getFWFiles().then( () => {
+      this.getFWFiles().then(() => {
         this.writeFile();
       })
     }
@@ -181,10 +179,10 @@ export default class App extends React.Component<any, object> {
     };
 
     const fwFiles = JSON.stringify(manifest, null, 2);
-    fs.writeFile(this.state.outputFile, fwFiles, 'utf8', function(err) {
+    fs.writeFile(this.state.outputFile, fwFiles, 'utf8', function (err) {
       if (err) throw err;
       console.log('write complete');
-      self.setState({writeCompleteDlgOpen: true});
+      self.setState({ writeCompleteDlgOpen: true });
     });
   }
 
@@ -205,12 +203,12 @@ export default class App extends React.Component<any, object> {
 
         const contents = fs.readFileSync(inputFile);
         const fwFiles = JSON.parse(contents.toString());
-        this.setState({fwFiles: fwFiles.firmwareFile});
+        this.setState({ fwFiles: fwFiles.firmwareFile });
         this.baseFWFiles = cloneDeep(fwFiles).firmwareFile;
 
         // purpose of this data structure is to know if a fw file already exists for a given family and version.
         // if yes, a new fw file does not need to be interrogated. the existing information can be reused.
-        this.baseFWFiles.forEach( (fwFile) => {
+        this.baseFWFiles.forEach((fwFile) => {
           this.fwFilesByFamilyVersion[fwFile.family + fwFile.version] = fwFile;
         })
       }
@@ -244,7 +242,7 @@ export default class App extends React.Component<any, object> {
     const fwFiles: FWFile[] = this.state.fwFiles;
     const fwFile: FWFile = fwFiles[row];
     fwFile.version = value;
-    this.setState({fwFiles});
+    this.setState({ fwFiles });
   }
 
   buildRow = (fwFile: FWFile, index: number) => {
@@ -273,7 +271,7 @@ export default class App extends React.Component<any, object> {
 
   buildRows = (): any => {
 
-    const fwFileRows: any[] = this.state.fwFiles.map( (fwFile: FWFile, index: number) => {
+    const fwFileRows: any[] = this.state.fwFiles.map((fwFile: FWFile, index: number) => {
       return this.buildRow(fwFile, index);
     })
 
@@ -281,7 +279,7 @@ export default class App extends React.Component<any, object> {
   }
 
   render() {
-    
+
     const self = this;
 
     const actions = [
@@ -345,18 +343,18 @@ export default class App extends React.Component<any, object> {
               {fwRows}
             </TableBody>
           </Table>
-        
-        <div>
-          <Dialog
-            title="Firmware manifest file saved"
-            actions={actions}
-            modal={false}
-            open={this.state.writeCompleteDlgOpen}
-            onRequestClose={this.handleCloseWriteCompleteDlg}
-          >
-          Firmware manifest file saved
+
+          <div>
+            <Dialog
+              title="Firmware manifest file saved"
+              actions={actions}
+              modal={false}
+              open={this.state.writeCompleteDlgOpen}
+              onRequestClose={this.handleCloseWriteCompleteDlg}
+            >
+              Firmware manifest file saved
           </Dialog>
-      </div>
+          </div>
         </div>
       </MuiThemeProvider>
     );
