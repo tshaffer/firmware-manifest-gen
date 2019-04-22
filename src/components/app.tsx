@@ -85,44 +85,47 @@ export default class App extends React.Component<any, object> {
 
     const numberOfFWFiles = this.fwFileIndicesToLocate.length;
 
-    const getNextFWFile = (self: any, fileIndex: number): Promise<void> => {
+    return new Promise((resolve, reject) => {
 
-      if (fileIndex >= numberOfFWFiles) {
-        return Promise.resolve();
-      }
+      const getNextFWFile = (self: any, fileIndex: number) => {
 
-      const fwFileIndex = self.fwFileIndicesToLocate[fileIndex];
-      const fwFileToMatch: FWFile = self.state.fwFiles[fwFileIndex];
-      const fwFileName = fwFileToMatch.family.toLowerCase() + '-' + fwFileToMatch.version + '-update.bsfw';
-
-      const dialog: any = remote.dialog;
-      dialog.showOpenDialog({
-        title: 'Locate file ' + fwFileName,
-        defaultPath: self.state.manifestFolder,
-        message: 'Locate file ' + fwFileName,
-        properties: [
-          'openFile',
-        ]
-      }, (selectedPaths: string[]) => {
-        if (!isNil(selectedPaths) && selectedPaths.length === 1) {
-          const filePath: string = selectedPaths[0];
-          getFileInfo(filePath).then((fileInfo: FileInfo) => {
-
-            fwFileToMatch.versionNumber = this.getVersionNumber(fwFileToMatch.version);
-            fwFileToMatch.link = 'http://bsnm.s3.amazonaws.com/public/' + fwFileName;
-            fwFileToMatch.fileLength = fileInfo.size.toString();;
-            fwFileToMatch.sha1 = fileInfo.sha1;
-
-            return getNextFWFile(self, fileIndex + 1);
-          });
+        if (fileIndex >= numberOfFWFiles) {
+          return resolve();
         }
-        else {
-          debugger;
-        }
-      });
-    };
 
-    return getNextFWFile(this, 0);
+        const fwFileIndex = self.fwFileIndicesToLocate[fileIndex];
+        const fwFileToMatch: FWFile = self.state.fwFiles[fwFileIndex];
+        const fwFileName = fwFileToMatch.family.toLowerCase() + '-' + fwFileToMatch.version + '-update.bsfw';
+
+        const dialog: any = remote.dialog;
+        dialog.showOpenDialog({
+          title: 'Locate file ' + fwFileName,
+          defaultPath: self.state.manifestFolder,
+          message: 'Locate file ' + fwFileName,
+          properties: [
+            'openFile',
+          ]
+        }, (selectedPaths: string[]) => {
+          if (!isNil(selectedPaths) && selectedPaths.length === 1) {
+            const filePath: string = selectedPaths[0];
+            getFileInfo(filePath).then((fileInfo: FileInfo) => {
+
+              fwFileToMatch.versionNumber = this.getVersionNumber(fwFileToMatch.version);
+              fwFileToMatch.link = 'http://bsnm.s3.amazonaws.com/public/' + fwFileName;
+              fwFileToMatch.fileLength = fileInfo.size.toString();;
+              fwFileToMatch.sha1 = fileInfo.sha1;
+
+              getNextFWFile(self, fileIndex + 1);
+            });
+          }
+          else {
+            debugger;
+          }
+        });
+      };
+
+      getNextFWFile(this, 0);
+    });
   }
 
   getVersionNumber(fwVersion: string): string {
