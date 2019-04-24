@@ -45,8 +45,7 @@ interface FWFileLUT {
 
 interface AppState {
   manifestFolder: string;
-  inputFile: string;
-  outputFile: string;
+  fileName: string;
   fwFiles: FWFile[];
   writeCompleteDlgOpen: boolean;
 }
@@ -61,12 +60,14 @@ export default class App extends React.Component<any, object> {
     super(props);
 
     this.state = {
-      manifestFolder: '/Users/tedshaffer/Documents/BrightAuthor/CloudData',
-      inputFile: '',
-      outputFile: '',
+      manifestFolder: '/Users/tedshaffer/Documents/BrightAuthor/FirmwareManifest',
+      fileName: 'firmwareManifest.json',
       fwFiles: [],
       writeCompleteDlgOpen: false,
     };
+
+    this.handleManifestFolderChange = this.handleManifestFolderChange.bind(this);
+    this.handleFileNameChange = this.handleFileNameChange.bind(this);
 
     this.handleBrowseForInputFile = this.handleBrowseForInputFile.bind(this);
     this.handleBrowseForOutputFile = this.handleBrowseForOutputFile.bind(this);
@@ -177,15 +178,35 @@ export default class App extends React.Component<any, object> {
 
     const self = this;
 
-    const manifest: any = {
-      firmwareFile: this.state.fwFiles
-    };
+    // const manifest: any = {
+    //   firmwareFile: this.state.fwFiles
+    // };
 
-    const fwFiles = JSON.stringify(manifest, null, 2);
-    fs.writeFile(this.state.outputFile, fwFiles, 'utf8', function (err) {
-      if (err) throw err;
-      console.log('write complete');
-      self.setState({ writeCompleteDlgOpen: true });
+    // const fwFiles = JSON.stringify(manifest, null, 2);
+    // fs.writeFile(this.state.outputFile, fwFiles, 'utf8', (err) => {
+    //   if (err)  { throw err; };
+    //   console.log('write complete');
+    //   self.setState({ writeCompleteDlgOpen: true });
+    // });
+  }
+
+  handleManifestFolderChange = () => {
+    const dialog: any = remote.dialog;
+    dialog.showOpenDialog({
+      defaultPath: this.state.manifestFolder,
+      properties: [
+        'openDirectory',
+      ]
+    }, (selectedPaths: string[]) => {
+      this.setState({
+        manifestFolder: selectedPaths[0],
+      });
+    });
+  }
+
+  handleFileNameChange = (event: any) => {
+    this.setState({
+      fileName: event.target.value,
     });
   }
 
@@ -281,6 +302,53 @@ export default class App extends React.Component<any, object> {
     return fwFileRows;
   }
 
+  renderManifestFolderLocation() {
+
+    const self = this;
+
+    return (
+      <div className='container'>
+        <span style={{ width: '120px' }}>Manifest folder:</span>
+        <TextField
+          id={'manifestFolder'}
+          value={self.state.manifestFolder}
+          onChange={self.handleManifestFolderChange}
+          style={{
+            width: '800px',
+            marginLeft: '10px',
+            marginRight: '10px',
+          }}
+        />
+        <RaisedButton label='Browse' onClick={self.handleManifestFolderChange} />
+      </div>
+    );
+  }
+
+  // file name: label, text box (with default)
+  // backup: label, check box
+  // fw location: label, text box (with default)
+
+  renderManifestFileName() {
+
+    const self = this;
+
+    return (
+      <div className='container'>
+        <span style={{ width: '120px' }}>File name:</span>
+        <TextField
+          id={'manifestFile'}
+          value={self.state.fileName}
+          onChange={self.handleFileNameChange}
+          style={{
+            width: '800px',
+            marginLeft: '10px',
+            marginRight: '10px',
+          }}
+        />
+      </div>
+    );
+  }
+
   render() {
 
     const self = this;
@@ -293,10 +361,20 @@ export default class App extends React.Component<any, object> {
       />,
     ];
 
-    const fwRows = this.buildRows();
+    // const fwRows = this.buildRows();
     return (
       <MuiThemeProvider>
         <div>
+          {self.renderManifestFolderLocation()}
+          {self.renderManifestFileName()}
+        </div>
+      </MuiThemeProvider>
+    );
+  }
+}
+
+/*
+<div>
           <div className="container">
             <span style={{ width: '80px' }}>Input file:</span>
             <TextField
@@ -359,7 +437,4 @@ export default class App extends React.Component<any, object> {
           </Dialog>
           </div>
         </div>
-      </MuiThemeProvider>
-    );
-  }
-}
+*/
