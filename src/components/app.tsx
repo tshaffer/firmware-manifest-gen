@@ -7,7 +7,7 @@ import { cloneDeep, isNil } from 'lodash';
 import * as React from 'react';
 
 import * as path from 'path';
-import * as fs from 'fs';
+import * as fs from 'fs-extra';
 
 // https://stackoverflow.com/questions/15877362/declare-and-initialize-a-dictionary-in-typescript
 
@@ -42,8 +42,8 @@ interface FWFile {
 }
 
 interface FWFileLUT {
-  [key: string]: FWFile
-};
+  [key: string]: FWFile;
+}
 
 interface AppState {
   manifestFolder: string;
@@ -77,13 +77,9 @@ export default class App extends React.Component<any, object> {
     this.handleBackupManifestChange = this.handleBackupManifestChange.bind(this);
     this.handleFirmwareUrlChange = this.handleFirmwareUrlChange.bind(this);
     this.handleLoadFile = this.handleLoadFile.bind(this);
-
-    this.handleBrowseForInputFile = this.handleBrowseForInputFile.bind(this);
-    this.handleBrowseForOutputFile = this.handleBrowseForOutputFile.bind(this);
-    this.handleVersionChange = this.handleVersionChange.bind(this);
     this.handleGenerateManifest = this.handleGenerateManifest.bind(this);
+    this.handleVersionChange = this.handleVersionChange.bind(this);
     this.handleCloseWriteCompleteDlg = this.handleCloseWriteCompleteDlg.bind(this);
-
     this.getFWFiles = this.getFWFiles.bind(this);
   }
 
@@ -154,33 +150,47 @@ export default class App extends React.Component<any, object> {
 
     const self = this;
 
-    this.fwFileIndicesToLocate = [];
+    // if indicated, make a backup copy first
+    if (this.state.backupManifest) {
+      
+      const sourcePath = path.join(this.state.manifestFolder, this.state.fileName);
+      
+      const today = new Date();
+      const currentDate = today.getFullYear() + '-' + (today.getMonth() + 1) + '-' + today.getDate();
 
-    // compare baseline against current
-    this.state.fwFiles.forEach((fwFile: FWFile, index: number) => {
-
-      // version has changed from baseline
-      if (fwFile.version !== self.baseFWFiles[index].version) {
-
-        // does family / version exist elsewhere?
-        const fwFileName = fwFile.family.toLowerCase() + '-' + fwFile.version + '-update.bsfw';
-        if (!this.fwFilesByFamilyVersion.hasOwnProperty(fwFileName)) {
-          // no, add it to the list of fw files that must be added to the manifest
-          if (this.fwFileIndicesToLocate.indexOf(index) < 0) {
-            this.fwFileIndicesToLocate.push(index);
-          }
-        }
-      }
-    });
-
-    if (this.fwFileIndicesToLocate.length > 0) {
-      this.getFWFiles().then(() => {
-        this.writeFile();
-      })
+      const tmpPath = path.join(this.state.manifestFolder, this.state.fileName);
+      const basename = path.basename(tmpPath, '.json');
+      const destinationPath = path.join(this.state.manifestFolder, basename + '-' + currentDate + '.json');
+      fs.copyFileSync(sourcePath, destinationPath);
     }
-    else {
-      this.writeFile();
-    }
+
+    // this.fwFileIndicesToLocate = [];
+
+    // // compare baseline against current
+    // this.state.fwFiles.forEach((fwFile: FWFile, index: number) => {
+
+    //   // version has changed from baseline
+    //   if (fwFile.version !== self.baseFWFiles[index].version) {
+
+    //     // does family / version exist elsewhere?
+    //     const fwFileName = fwFile.family.toLowerCase() + '-' + fwFile.version + '-update.bsfw';
+    //     if (!this.fwFilesByFamilyVersion.hasOwnProperty(fwFileName)) {
+    //       // no, add it to the list of fw files that must be added to the manifest
+    //       if (this.fwFileIndicesToLocate.indexOf(index) < 0) {
+    //         this.fwFileIndicesToLocate.push(index);
+    //       }
+    //     }
+    //   }
+    // });
+
+    // if (this.fwFileIndicesToLocate.length > 0) {
+    //   this.getFWFiles().then(() => {
+    //     this.writeFile();
+    //   });
+    // }
+    // else {
+    //   this.writeFile();
+    // }
   }
 
   writeFile() {
@@ -246,58 +256,6 @@ export default class App extends React.Component<any, object> {
     });
   }
   
-  handleBrowseForInputFile = () => {
-    const dialog: any = remote.dialog;
-    dialog.showOpenDialog({
-      defaultPath: this.state.manifestFolder,
-      properties: [
-        'openFile',
-      ]
-    }, (selectedPaths: string[]) => {
-      if (!isNil(selectedPaths) && selectedPaths.length === 1) {
-        const inputFile: string = selectedPaths[0];
-        this.setState({
-          manifestFolder: path.dirname(selectedPaths[0]),
-          inputFile,
-        });
-
-        const contents = fs.readFileSync(inputFile);
-        const fwFiles = JSON.parse(contents.toString());
-        this.setState({ fwFiles: fwFiles.firmwareFile });
-        this.baseFWFiles = cloneDeep(fwFiles).firmwareFile;
-
-        // purpose of this data structure is to know if a fw file already exists for a given family and version.
-        // if yes, a new fw file does not need to be interrogated. the existing information can be reused.
-        this.baseFWFiles.forEach((fwFile) => {
-          this.fwFilesByFamilyVersion[fwFile.family + fwFile.version] = fwFile;
-        })
-      }
-    });
-  }
-
-  handleBrowseForOutputFile = () => {
-    const dialog: any = remote.dialog;
-    dialog.showSaveDialog({
-      defaultPath: this.state.manifestFolder,
-    }, (outputFile: string) => {
-      this.setState({
-        outputFile,
-      });
-    });
-  }
-
-  handleInputFileChange = (event: any) => {
-    this.setState({
-      inputFile: event.target.value,
-    });
-  }
-
-  handleOutputFileChange = (event: any) => {
-    this.setState({
-      outputFile: event.target.value,
-    });
-  }
-
   handleVersionChange = (row: any, event: any, value: any) => {
     const fwFiles: FWFile[] = this.state.fwFiles;
     const fwFile: FWFile = fwFiles[row];
@@ -305,7 +263,7 @@ export default class App extends React.Component<any, object> {
     this.setState({ fwFiles });
   }
 
-  buildRow = (fwFile: FWFile, index: number) => {
+  renderRow = (fwFile: FWFile, index: number) => {
 
     const version: string = this.state.fwFiles[index].version;
 
@@ -329,10 +287,10 @@ export default class App extends React.Component<any, object> {
     );
   }
 
-  buildRows = (): any => {
+  renderRows = (): any => {
 
     const fwFileRows: any[] = this.state.fwFiles.map((fwFile: FWFile, index: number) => {
-      return this.buildRow(fwFile, index);
+      return this.renderRow(fwFile, index);
     })
 
     return fwFileRows;
@@ -434,7 +392,7 @@ export default class App extends React.Component<any, object> {
 
   renderFirmwareTable() {
 
-    const fwRows = this.buildRows();
+    const fwRows = this.renderRows();
 
     return (
       <Table>
