@@ -85,53 +85,39 @@ export default class App extends React.Component<any, object> {
 
   handleCloseWriteCompleteDlg = () => {
     this.setState({ writeCompleteDlgOpen: false });
-  };
+  }
 
   getFWFiles(): Promise<void> {
 
     const numberOfFWFiles = this.fwFileIndicesToLocate.length;
 
-    return new Promise((resolve, reject) => {
+    const getNextFWFile = (self: any, fileIndex: number): Promise<void> => {
 
-      const getNextFWFile = (self: any, fileIndex: number) => {
+      if (fileIndex >= numberOfFWFiles) {
+        return Promise.resolve();
+      }
 
-        if (fileIndex >= numberOfFWFiles) {
-          return resolve();
-        }
+      const fwFileIndex = self.fwFileIndicesToLocate[fileIndex];
+      const fwFileToMatch: FWFile = self.state.fwFiles[fwFileIndex];
+      const fwFileName = fwFileToMatch.family.toLowerCase() + '-' + fwFileToMatch.version + '-update.bsfw';
+      const fwFilePath = path.join(this.state.manifestFolder, fwFileName);
 
-        const fwFileIndex = self.fwFileIndicesToLocate[fileIndex];
-        const fwFileToMatch: FWFile = self.state.fwFiles[fwFileIndex];
-        const fwFileName = fwFileToMatch.family.toLowerCase() + '-' + fwFileToMatch.version + '-update.bsfw';
+      // TODO - check for existence of fwFilePath
 
-        const dialog: any = remote.dialog;
-        dialog.showOpenDialog({
-          title: 'Locate file ' + fwFileName,
-          defaultPath: self.state.manifestFolder,
-          message: 'Locate file ' + fwFileName,
-          properties: [
-            'openFile',
-          ]
-        }, (selectedPaths: string[]) => {
-          if (!isNil(selectedPaths) && selectedPaths.length === 1) {
-            const filePath: string = selectedPaths[0];
-            getFileInfo(filePath).then((fileInfo: FileInfo) => {
+      console.log(fwFilePath);
 
-              fwFileToMatch.versionNumber = this.getVersionNumber(fwFileToMatch.version);
-              fwFileToMatch.link = 'http://bsnm.s3.amazonaws.com/public/' + fwFileName;
-              fwFileToMatch.fileLength = fileInfo.size.toString();;
-              fwFileToMatch.sha1 = fileInfo.sha1;
+      return getFileInfo(fwFilePath).then((fileInfo: FileInfo) => {
 
-              getNextFWFile(self, fileIndex + 1);
-            });
-          }
-          else {
-            debugger;
-          }
-        });
-      };
+        fwFileToMatch.versionNumber = this.getVersionNumber(fwFileToMatch.version);
+        fwFileToMatch.link = 'http://bsnm.s3.amazonaws.com/public/' + fwFileName;
+        fwFileToMatch.fileLength = fileInfo.size.toString();
+        fwFileToMatch.sha1 = fileInfo.sha1;
 
-      getNextFWFile(this, 0);
-    });
+        return getNextFWFile(self, fileIndex + 1);
+      });
+    };
+
+    return getNextFWFile(this, 0);
   }
 
   getVersionNumber(fwVersion: string): string {
@@ -152,61 +138,62 @@ export default class App extends React.Component<any, object> {
 
     // if indicated, make a backup copy first
     if (this.state.backupManifest) {
-      
+
       const sourcePath = path.join(this.state.manifestFolder, this.state.fileName);
-      
+
       const today = new Date();
       const currentDate = today.getFullYear() + '-' + (today.getMonth() + 1) + '-' + today.getDate();
 
       const tmpPath = path.join(this.state.manifestFolder, this.state.fileName);
       const basename = path.basename(tmpPath, '.json');
       const destinationPath = path.join(this.state.manifestFolder, basename + '-' + currentDate + '.json');
-      fs.copyFileSync(sourcePath, destinationPath);
+      fs.copySync(sourcePath, destinationPath);
     }
 
-    // this.fwFileIndicesToLocate = [];
+    this.fwFileIndicesToLocate = [];
 
-    // // compare baseline against current
-    // this.state.fwFiles.forEach((fwFile: FWFile, index: number) => {
+    // compare baseline against current
+    this.state.fwFiles.forEach((fwFile: FWFile, index: number) => {
 
-    //   // version has changed from baseline
-    //   if (fwFile.version !== self.baseFWFiles[index].version) {
+      // version has changed from baseline
+      if (fwFile.version !== self.baseFWFiles[index].version) {
 
-    //     // does family / version exist elsewhere?
-    //     const fwFileName = fwFile.family.toLowerCase() + '-' + fwFile.version + '-update.bsfw';
-    //     if (!this.fwFilesByFamilyVersion.hasOwnProperty(fwFileName)) {
-    //       // no, add it to the list of fw files that must be added to the manifest
-    //       if (this.fwFileIndicesToLocate.indexOf(index) < 0) {
-    //         this.fwFileIndicesToLocate.push(index);
-    //       }
-    //     }
-    //   }
-    // });
+        // does family / version exist elsewhere?
+        const fwFileName = fwFile.family.toLowerCase() + '-' + fwFile.version + '-update.bsfw';
+        if (!this.fwFilesByFamilyVersion.hasOwnProperty(fwFileName)) {
+          // no, add it to the list of fw files that must be added to the manifest
+          if (this.fwFileIndicesToLocate.indexOf(index) < 0) {
+            this.fwFileIndicesToLocate.push(index);
+          }
+        }
+      }
+    });
 
-    // if (this.fwFileIndicesToLocate.length > 0) {
-    //   this.getFWFiles().then(() => {
-    //     this.writeFile();
-    //   });
-    // }
-    // else {
-    //   this.writeFile();
-    // }
+    if (this.fwFileIndicesToLocate.length > 0) {
+      this.getFWFiles().then(() => {
+        this.writeFile();
+      });
+    }
+    else {
+      this.writeFile();
+    }
   }
 
   writeFile() {
 
     const self = this;
 
-    // const manifest: any = {
-    //   firmwareFile: this.state.fwFiles
-    // };
+    const manifest: any = {
+      firmwareFile: this.state.fwFiles
+    };
 
-    // const fwFiles = JSON.stringify(manifest, null, 2);
-    // fs.writeFile(this.state.outputFile, fwFiles, 'utf8', (err) => {
-    //   if (err)  { throw err; };
-    //   console.log('write complete');
-    //   self.setState({ writeCompleteDlgOpen: true });
-    // });
+    const fwFiles = JSON.stringify(manifest, null, 2);
+    const filePath = path.join(this.state.manifestFolder, this.state.fileName);
+    fs.writeFile(filePath, fwFiles, 'utf8', (err) => {
+      if (err)  { throw err; };
+      console.log('write complete');
+      self.setState({ writeCompleteDlgOpen: true });
+    });
   }
 
   handleManifestFolderChange = () => {
@@ -255,7 +242,7 @@ export default class App extends React.Component<any, object> {
       this.fwFilesByFamilyVersion[fwFile.family + fwFile.version] = fwFile;
     });
   }
-  
+
   handleVersionChange = (row: any, event: any, value: any) => {
     const fwFiles: FWFile[] = this.state.fwFiles;
     const fwFile: FWFile = fwFiles[row];
@@ -379,7 +366,7 @@ export default class App extends React.Component<any, object> {
     return (
       <div>
         <RaisedButton
-          label='Load file' 
+          label='Load file'
           onClick={self.handleLoadFile}
           style={{
             marginRight: '10px',
