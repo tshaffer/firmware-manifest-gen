@@ -9,6 +9,8 @@ import * as React from 'react';
 import * as path from 'path';
 import * as fs from 'fs-extra';
 
+import { Builder } from 'xml2js';
+
 // https://stackoverflow.com/questions/15877362/declare-and-initialize-a-dictionary-in-typescript
 
 // https://v0.material-ui.com/#/
@@ -65,7 +67,7 @@ export default class App extends React.Component<any, object> {
 
     this.state = {
       manifestFolder: '/Users/tedshaffer/Documents/BrightAuthor/FirmwareManifest',
-      fileName: 'firmwareManifest.json',
+      fileName: 'FirmwareManifest.json',
       backupManifest: true,
       firmwareUrl: 'http://bsnm.s3.amazonaws.com/public/',
       fwFiles: [],
@@ -179,19 +181,39 @@ export default class App extends React.Component<any, object> {
     }
   }
 
+  generateXmlManifest(manifest: any): string {
+    
+    const xmlManifest = {
+      BrightSignFirmware: manifest
+    };
+    
+    const builder = new Builder();
+    const xml = builder.buildObject(xmlManifest);
+    console.log(xml);
+    return xml;
+  }
+
   writeFile() {
 
     const self = this;
 
     const manifest: any = {
-      firmwareFile: this.state.fwFiles
+      FirmwareFile: this.state.fwFiles
     };
 
-    const fwFiles = JSON.stringify(manifest, null, 2);
-    const filePath = path.join(this.state.manifestFolder, this.state.fileName);
-    fs.writeFile(filePath, fwFiles, 'utf8', (err) => {
+    // xml file name hardcoded for compatibility with BrightAuthor
+    const xmlFilePath = path.join(this.state.manifestFolder, 'FirmwareCompatibilityFile.xml');
+    const xml = this.generateXmlManifest(manifest);
+    fs.writeFile(xmlFilePath, xml, 'utf8', (err) => {
       if (err)  { throw err; };
-      console.log('write complete');
+      console.log('xml file write complete');
+    });
+
+    const jsonFilePath = path.join(this.state.manifestFolder, this.state.fileName);
+    const fwFiles = JSON.stringify(manifest, null, 2);
+    fs.writeFile(jsonFilePath, fwFiles, 'utf8', (err) => {
+      if (err)  { throw err; };
+      console.log('json file write complete');
       self.setState({ writeCompleteDlgOpen: true });
     });
   }
