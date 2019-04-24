@@ -76,6 +76,7 @@ export default class App extends React.Component<any, object> {
     this.handleFileNameChange = this.handleFileNameChange.bind(this);
     this.handleBackupManifestChange = this.handleBackupManifestChange.bind(this);
     this.handleFirmwareUrlChange = this.handleFirmwareUrlChange.bind(this);
+    this.handleLoadFile = this.handleLoadFile.bind(this);
 
     this.handleBrowseForInputFile = this.handleBrowseForInputFile.bind(this);
     this.handleBrowseForOutputFile = this.handleBrowseForOutputFile.bind(this);
@@ -230,6 +231,21 @@ export default class App extends React.Component<any, object> {
     });
   }
 
+  handleLoadFile = () => {
+
+    const filePath = path.join(this.state.manifestFolder, this.state.fileName);
+    const contents = fs.readFileSync(filePath);
+    const fwFiles = JSON.parse(contents.toString());
+    this.setState({ fwFiles: fwFiles.firmwareFile });
+    this.baseFWFiles = cloneDeep(fwFiles).firmwareFile;
+
+    // purpose of this data structure is to know if a fw file already exists for a given family and version.
+    // if yes, a new fw file does not need to be interrogated. the existing information can be reused.
+    this.baseFWFiles.forEach((fwFile) => {
+      this.fwFilesByFamilyVersion[fwFile.family + fwFile.version] = fwFile;
+    });
+  }
+  
   handleBrowseForInputFile = () => {
     const dialog: any = remote.dialog;
     dialog.showOpenDialog({
@@ -398,12 +414,21 @@ export default class App extends React.Component<any, object> {
     );
   }
 
-  renderGenerateManifest() {
+  renderGenerateActions() {
 
     const self = this;
 
     return (
-      <RaisedButton label='Generate Manifest' onClick={self.handleGenerateManifest} />
+      <div>
+        <RaisedButton
+          label='Load file' 
+          onClick={self.handleLoadFile}
+          style={{
+            marginRight: '10px',
+          }}
+        />
+        <RaisedButton label='Generate Manifest' onClick={self.handleGenerateManifest} />
+      </div>
     );
   }
 
@@ -469,7 +494,7 @@ export default class App extends React.Component<any, object> {
           {self.renderManifestFolderLocation()}
           {self.renderManifestFileName()}
           {self.renderFirmwareUrl()}
-          {self.renderGenerateManifest()}
+          {self.renderGenerateActions()}
           {self.renderFirmwareTable()}
         </div>
       </MuiThemeProvider>
