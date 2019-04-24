@@ -18,6 +18,8 @@ import MuiThemeProvider from 'material-ui/styles/MuiThemeProvider';
 import RaisedButton from 'material-ui/RaisedButton';
 import FlatButton from 'material-ui/FlatButton';
 import TextField from 'material-ui/TextField';
+import Checkbox from 'material-ui/Checkbox';
+
 import { Table, TableBody, TableHeader, TableHeaderColumn, TableRow, TableRowColumn } from 'material-ui/Table';
 import Dialog from 'material-ui/Dialog';
 
@@ -46,6 +48,7 @@ interface FWFileLUT {
 interface AppState {
   manifestFolder: string;
   fileName: string;
+  backupManifest: boolean;
   fwFiles: FWFile[];
   writeCompleteDlgOpen: boolean;
 }
@@ -62,12 +65,14 @@ export default class App extends React.Component<any, object> {
     this.state = {
       manifestFolder: '/Users/tedshaffer/Documents/BrightAuthor/FirmwareManifest',
       fileName: 'firmwareManifest.json',
+      backupManifest: true,
       fwFiles: [],
       writeCompleteDlgOpen: false,
     };
 
     this.handleManifestFolderChange = this.handleManifestFolderChange.bind(this);
     this.handleFileNameChange = this.handleFileNameChange.bind(this);
+    this.handleBackupManifestChange = this.handleBackupManifestChange.bind(this);
 
     this.handleBrowseForInputFile = this.handleBrowseForInputFile.bind(this);
     this.handleBrowseForOutputFile = this.handleBrowseForOutputFile.bind(this);
@@ -210,6 +215,12 @@ export default class App extends React.Component<any, object> {
     });
   }
 
+  handleBackupManifestChange() {
+    this.setState({
+      backupManifest: !this.state.backupManifest,
+    });
+  }
+
   handleBrowseForInputFile = () => {
     const dialog: any = remote.dialog;
     dialog.showOpenDialog({
@@ -324,7 +335,6 @@ export default class App extends React.Component<any, object> {
     );
   }
 
-  // file name: label, text box (with default)
   // backup: label, check box
   // fw location: label, text box (with default)
 
@@ -349,6 +359,24 @@ export default class App extends React.Component<any, object> {
     );
   }
 
+  renderBackupManifest() {
+
+    const self = this;
+
+    const styles = {
+      checkbox: {
+        marginBottom: 16,
+      },
+    };
+    return (
+      <Checkbox
+        label='Make copy of manifest file?'
+        checked={this.state.backupManifest}
+        onCheck={this.handleBackupManifestChange}
+        style={styles.checkbox}
+      />
+    )
+  }
   render() {
 
     const self = this;
@@ -367,6 +395,7 @@ export default class App extends React.Component<any, object> {
         <div>
           {self.renderManifestFolderLocation()}
           {self.renderManifestFileName()}
+          {self.renderBackupManifest()}
         </div>
       </MuiThemeProvider>
     );
