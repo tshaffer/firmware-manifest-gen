@@ -344,11 +344,15 @@ export default class App extends React.Component<any, object> {
     );
   }
 
-  // fw location: label, text box (with default)
-
   renderManifestFileName() {
 
     const self = this;
+
+    const styles = {
+      checkbox: {
+        marginBottom: 16,
+      },
+    };
 
     return (
       <div className='container'>
@@ -363,27 +367,14 @@ export default class App extends React.Component<any, object> {
             marginRight: '10px',
           }}
         />
+        <Checkbox
+          label='Make copy of manifest file?'
+          checked={this.state.backupManifest}
+          onCheck={this.handleBackupManifestChange}
+          style={styles.checkbox}
+        />
       </div>
     );
-  }
-
-  renderBackupManifest() {
-
-    const self = this;
-
-    const styles = {
-      checkbox: {
-        marginBottom: 16,
-      },
-    };
-    return (
-      <Checkbox
-        label='Make copy of manifest file?'
-        checked={this.state.backupManifest}
-        onCheck={this.handleBackupManifestChange}
-        style={styles.checkbox}
-      />
-    )
   }
 
   renderFirmwareUrl() {
@@ -425,7 +416,6 @@ export default class App extends React.Component<any, object> {
         <div>
           {self.renderManifestFolderLocation()}
           {self.renderManifestFileName()}
-          {self.renderBackupManifest()}
           {self.renderFirmwareUrl()}
         </div>
       </MuiThemeProvider>
