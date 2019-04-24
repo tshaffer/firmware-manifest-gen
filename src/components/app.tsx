@@ -49,6 +49,7 @@ interface AppState {
   manifestFolder: string;
   fileName: string;
   backupManifest: boolean;
+  firmwareUrl: string;
   fwFiles: FWFile[];
   writeCompleteDlgOpen: boolean;
 }
@@ -66,6 +67,7 @@ export default class App extends React.Component<any, object> {
       manifestFolder: '/Users/tedshaffer/Documents/BrightAuthor/FirmwareManifest',
       fileName: 'firmwareManifest.json',
       backupManifest: true,
+      firmwareUrl: 'http://bsnm.s3.amazonaws.com/public/',
       fwFiles: [],
       writeCompleteDlgOpen: false,
     };
@@ -73,6 +75,7 @@ export default class App extends React.Component<any, object> {
     this.handleManifestFolderChange = this.handleManifestFolderChange.bind(this);
     this.handleFileNameChange = this.handleFileNameChange.bind(this);
     this.handleBackupManifestChange = this.handleBackupManifestChange.bind(this);
+    this.handleFirmwareUrlChange = this.handleFirmwareUrlChange.bind(this);
 
     this.handleBrowseForInputFile = this.handleBrowseForInputFile.bind(this);
     this.handleBrowseForOutputFile = this.handleBrowseForOutputFile.bind(this);
@@ -221,6 +224,12 @@ export default class App extends React.Component<any, object> {
     });
   }
 
+  handleFirmwareUrlChange = (event: any) => {
+    this.setState({
+      firmwareUrl: event.target.value,
+    });
+  }
+
   handleBrowseForInputFile = () => {
     const dialog: any = remote.dialog;
     dialog.showOpenDialog({
@@ -335,7 +344,6 @@ export default class App extends React.Component<any, object> {
     );
   }
 
-  // backup: label, check box
   // fw location: label, text box (with default)
 
   renderManifestFileName() {
@@ -377,6 +385,28 @@ export default class App extends React.Component<any, object> {
       />
     )
   }
+
+  renderFirmwareUrl() {
+    const self = this;
+
+    return (
+      <div className='container'>
+        <span style={{ width: '120px' }}>Firmware Url:</span>
+        <TextField
+          id={'firmwareUrl'}
+          value={self.state.firmwareUrl}
+          onChange={self.handleFirmwareUrlChange}
+          style={{
+            width: '800px',
+            marginLeft: '10px',
+            marginRight: '10px',
+          }}
+        />
+      </div>
+    );
+
+  }
+
   render() {
 
     const self = this;
@@ -396,6 +426,7 @@ export default class App extends React.Component<any, object> {
           {self.renderManifestFolderLocation()}
           {self.renderManifestFileName()}
           {self.renderBackupManifest()}
+          {self.renderFirmwareUrl()}
         </div>
       </MuiThemeProvider>
     );
