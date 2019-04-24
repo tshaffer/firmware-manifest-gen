@@ -188,9 +188,7 @@ export default class App extends React.Component<any, object> {
     };
     
     const builder = new Builder();
-    const xml = builder.buildObject(xmlManifest);
-    console.log(xml);
-    return xml;
+    return builder.buildObject(xmlManifest);
   }
 
   writeFile() {
