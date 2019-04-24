@@ -378,6 +378,7 @@ export default class App extends React.Component<any, object> {
   }
 
   renderFirmwareUrl() {
+
     const self = this;
 
     return (
@@ -395,96 +396,83 @@ export default class App extends React.Component<any, object> {
         />
       </div>
     );
+  }
 
+  renderGenerateManifest() {
+
+    const self = this;
+
+    return (
+      <RaisedButton label='Generate Manifest' onClick={self.handleGenerateManifest} />
+    );
+  }
+
+  renderFirmwareTable() {
+
+    const fwRows = this.buildRows();
+
+    return (
+      <Table>
+        <TableHeader
+          displaySelectAll={false}
+          adjustForCheckbox={false}
+          enableSelectAll={false}
+        >
+          <TableRow>
+            <TableHeaderColumn>Family</TableHeaderColumn>
+            <TableHeaderColumn>Type</TableHeaderColumn>
+            <TableHeaderColumn>Version</TableHeaderColumn>
+          </TableRow>
+
+        </TableHeader>
+        <TableBody
+          displayRowCheckbox={false}
+        >
+          {fwRows}
+        </TableBody>
+      </Table>
+    );
+  }
+
+  renderDialog() {
+
+    const actions = [
+      <FlatButton
+        label='OK'
+        primary={true}
+        onClick={this.handleCloseWriteCompleteDlg}
+      />,
+    ];
+
+    return (
+      <div>
+        <Dialog
+          title='Firmware manifest file saved'
+          actions={actions}
+          modal={false}
+          open={this.state.writeCompleteDlgOpen}
+          onRequestClose={this.handleCloseWriteCompleteDlg}
+        >
+          Firmware manifest file saved
+        </Dialog>
+      </div>
+    );
   }
 
   render() {
 
     const self = this;
 
-    const actions = [
-      <FlatButton
-        label="OK"
-        primary={true}
-        onClick={this.handleCloseWriteCompleteDlg}
-      />,
-    ];
-
-    // const fwRows = this.buildRows();
     return (
       <MuiThemeProvider>
         <div>
           {self.renderManifestFolderLocation()}
           {self.renderManifestFileName()}
           {self.renderFirmwareUrl()}
+          {self.renderGenerateManifest()}
+          {self.renderFirmwareTable()}
         </div>
       </MuiThemeProvider>
     );
   }
 }
-
-/*
-<div>
-          <div className="container">
-            <span style={{ width: '80px' }}>Input file:</span>
-            <TextField
-              id={'inputFile'}
-              value={self.state.inputFile}
-              onChange={self.handleInputFileChange}
-              style={{
-                width: '800px',
-                marginLeft: '10px',
-                marginRight: '10px',
-              }}
-            />
-            <RaisedButton label='Browse' onClick={self.handleBrowseForInputFile} />
-          </div>
-          <div className="container">
-            <span style={{ width: '80px' }}>Output file:</span>
-            <TextField
-              id={'outputFile'}
-              value={self.state.outputFile}
-              onChange={self.handleOutputFileChange}
-              style={{
-                width: '800px',
-                marginLeft: '10px',
-                marginRight: '10px',
-              }}
-            />
-            <RaisedButton label='Browse' onClick={self.handleBrowseForOutputFile} />
-          </div>
-          <RaisedButton label='Generate Manifest' onClick={self.handleGenerateManifest} />
-
-          <Table>
-            <TableHeader
-              displaySelectAll={false}
-              adjustForCheckbox={false}
-              enableSelectAll={false}
-            >
-              <TableRow>
-                <TableHeaderColumn>Family</TableHeaderColumn>
-                <TableHeaderColumn>Type</TableHeaderColumn>
-                <TableHeaderColumn>Version</TableHeaderColumn>
-              </TableRow>
-
-            </TableHeader>
-            <TableBody
-              displayRowCheckbox={false}
-            >
-              {fwRows}
-            </TableBody>
-          </Table>
-
-          <div>
-            <Dialog
-              title="Firmware manifest file saved"
-              actions={actions}
-              modal={false}
-              open={this.state.writeCompleteDlgOpen}
-              onRequestClose={this.handleCloseWriteCompleteDlg}
-            >
-              Firmware manifest file saved
-          </Dialog>
-          </div>
-        </div>
-*/
