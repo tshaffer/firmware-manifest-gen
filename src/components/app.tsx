@@ -9,6 +9,10 @@ import * as React from 'react';
 import * as path from 'path';
 import * as fs from 'fs-extra';
 
+import axios from 'axios';
+// tslint:disable-next-line: no-var-requires
+axios.defaults.adapter = require('axios/lib/adapters/http');
+
 import { Builder } from 'xml2js';
 
 // https://stackoverflow.com/questions/15877362/declare-and-initialize-a-dictionary-in-typescript
@@ -52,6 +56,7 @@ interface AppState {
   fileName: string;
   backupManifest: boolean;
   firmwareUrl: string;
+  buildsUrl: string;
   fwFiles: FWFile[];
   writeCompleteDlgOpen: boolean;
 }
@@ -70,6 +75,7 @@ export default class App extends React.Component<any, object> {
       fileName: 'FirmwareManifest.json',
       backupManifest: true,
       firmwareUrl: 'http://bsnm.s3.amazonaws.com/public/',
+      buildsUrl: 'http://repton.brightsign/builds/brightsign-releases/',
       fwFiles: [],
       writeCompleteDlgOpen: false,
     };
@@ -89,6 +95,51 @@ export default class App extends React.Component<any, object> {
     this.setState({ writeCompleteDlgOpen: false });
   }
 
+  nthIndex(str: string, pat: string, n: number): number {
+    const L = str.length;
+    let i = -1;
+    while (n-- && i++ < L) {
+      i = str.indexOf(pat, i);
+      if (i < 0) {
+        break;
+      }
+    }
+    return i;
+  }
+
+  getFWFile(fwFileToMatch: FWFile, fwFilePath: string, fwFileName: string): Promise<void> {
+
+    if (fs.pathExistsSync(fwFilePath)) {
+      return Promise.resolve();
+    }
+    else {
+      console.log('fw file does not exist on hard drive: ', fwFilePath);
+      console.log('download from build server');
+
+      const secondIndexOfDot = this.nthIndex(fwFileToMatch.version, '.', 2);
+
+      const majorAndMinorVersion = fwFileToMatch.version.substring(0, secondIndexOfDot);
+      console.log(majorAndMinorVersion);
+
+      // TODO - algorithm to find the firmware file on the build server seems fragile
+      const url: string = 
+        this.state.buildsUrl + '/' + majorAndMinorVersion + '/' + fwFileToMatch.version + '/' + fwFileName;
+      console.log('fetch from url: ', url);
+
+      return axios({
+        method: 'get',
+        url,
+        responseType: 'arraybuffer',
+      }).then((result: any) => {
+        console.log('poo');
+        fs.writeFileSync(fwFilePath, result.data);
+        return Promise.resolve();
+      }).catch((err: any) => {
+        return Promise.reject(err);
+      });
+    }
+  }
+
   getFWFiles(): Promise<void> {
 
     const numberOfFWFiles = this.fwFileIndicesToLocate.length;
@@ -104,18 +155,18 @@ export default class App extends React.Component<any, object> {
       const fwFileName = fwFileToMatch.family.toLowerCase() + '-' + fwFileToMatch.version + '-update.bsfw';
       const fwFilePath = path.join(this.state.manifestFolder, fwFileName);
 
-      // TODO - check for existence of fwFilePath
-
-      console.log(fwFilePath);
-
-      return getFileInfo(fwFilePath).then((fileInfo: FileInfo) => {
-
-        fwFileToMatch.versionNumber = this.getVersionNumber(fwFileToMatch.version);
-        fwFileToMatch.link = 'http://bsnm.s3.amazonaws.com/public/' + fwFileName;
-        fwFileToMatch.fileLength = fileInfo.size.toString();
-        fwFileToMatch.sha1 = fileInfo.sha1;
-
-        return getNextFWFile(self, fileIndex + 1);
+      return this.getFWFile(fwFileToMatch, fwFilePath, fwFileName)
+        .then( () => {
+          return getFileInfo(fwFilePath).then((fileInfo: FileInfo) => {
+            fwFileToMatch.versionNumber = this.getVersionNumber(fwFileToMatch.version);
+            fwFileToMatch.link = 'http://bsnm.s3.amazonaws.com/public/' + fwFileName;
+            fwFileToMatch.fileLength = fileInfo.size.toString();
+            fwFileToMatch.sha1 = fileInfo.sha1;
+    
+            return getNextFWFile(self, fileIndex + 1);
+        }).catch( (err: any) => {
+          return Promise.reject(err);
+        });
       });
     };
 
@@ -182,11 +233,11 @@ export default class App extends React.Component<any, object> {
   }
 
   generateXmlManifest(manifest: any): string {
-    
+
     const xmlManifest = {
       BrightSignFirmware: manifest
     };
-    
+
     const builder = new Builder();
     return builder.buildObject(xmlManifest);
   }
@@ -203,14 +254,14 @@ export default class App extends React.Component<any, object> {
     const xmlFilePath = path.join(this.state.manifestFolder, 'FirmwareCompatibilityFile.xml');
     const xml = this.generateXmlManifest(manifest);
     fs.writeFile(xmlFilePath, xml, 'utf8', (err) => {
-      if (err)  { throw err; };
+      if (err) { throw err; };
       console.log('xml file write complete');
     });
 
     const jsonFilePath = path.join(this.state.manifestFolder, this.state.fileName);
     const fwFiles = JSON.stringify(manifest, null, 2);
     fs.writeFile(jsonFilePath, fwFiles, 'utf8', (err) => {
-      if (err)  { throw err; };
+      if (err) { throw err; };
       console.log('json file write complete');
       self.setState({ writeCompleteDlgOpen: true });
     });
@@ -253,8 +304,8 @@ export default class App extends React.Component<any, object> {
     const filePath = path.join(this.state.manifestFolder, this.state.fileName);
     const contents = fs.readFileSync(filePath);
     const fwFiles = JSON.parse(contents.toString());
-    this.setState({ fwFiles: fwFiles.firmwareFile });
-    this.baseFWFiles = cloneDeep(fwFiles).firmwareFile;
+    this.setState({ fwFiles: fwFiles.FirmwareFile });
+    this.baseFWFiles = cloneDeep(fwFiles).FirmwareFile;
 
     // purpose of this data structure is to know if a fw file already exists for a given family and version.
     // if yes, a new fw file does not need to be interrogated. the existing information can be reused.
